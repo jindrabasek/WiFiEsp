@@ -56,7 +56,6 @@ along with The Arduino WiFiEsp library.  If not, see
 // maximum size of AT command
 #define CMD_BUFFER_SIZE 200
 
-
 typedef enum eProtMode {TCP_MODE, UDP_MODE, SSL_MODE} tProtMode;
 
 
@@ -120,7 +119,9 @@ class EspDrv
 
 public:
 
-    static void wifiDriverInit(Stream *espSerial);
+	static const unsigned long DEFAULT_ORIGINAL_BAUD_RATE = 115200;
+
+    static void wifiDriverInit(HardwareSerial *espSerial, unsigned long baudRate, unsigned long originalBaudRate = DEFAULT_ORIGINAL_BAUD_RATE);
 
 
     /* Start Wifi connection with passphrase
@@ -322,7 +323,7 @@ private:
 	static bool sendCmdGet(const __FlashStringHelper* cmd, const char* startTag, const char* endTag, char* outStr, int outStrLen);
 	static bool sendCmdGet(const __FlashStringHelper* cmd, const __FlashStringHelper* startTag, const __FlashStringHelper* endTag, char* outStr, int outStrLen);
 
-	static int readUntil(int timeout, const char* tag=NULL, bool findTags=true);
+	static int readUntil(unsigned int timeout, const char* tag=NULL, bool findTags=true);
 
 	static void espEmptyBuf(bool warn=true);
 

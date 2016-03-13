@@ -191,3 +191,5 @@ uint8_t WiFiEspUDP::getFirstSocket()
     return SOCK_NOT_AVAIL;
 }
 
+WiFiEspUDP::~WiFiEspUDP() {
+}

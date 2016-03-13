@@ -31,6 +31,7 @@ class WiFiEspServer : public Server
 
 public:
 	WiFiEspServer(uint16_t port);
+	virtual ~WiFiEspServer();
 
 
 	/*

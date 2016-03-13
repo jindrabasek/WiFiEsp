@@ -83,3 +83,7 @@ size_t WiFiEspServer::write(const uint8_t *buffer, size_t size)
     }
     return n;
 }
+
+WiFiEspServer::~WiFiEspServer() {
+	Serial.println(F("!!!!!! Server deleted! Do not do that! It is stopped only after ESP restart."));
+}

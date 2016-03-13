@@ -32,6 +32,7 @@ class WiFiEspClient : public Client
 public:
   WiFiEspClient();
   WiFiEspClient(uint8_t sock);
+  virtual ~WiFiEspClient();
   
   
   // override Print.print method

@@ -67,22 +67,52 @@ uint16_t EspDrv::_remotePort  =0;
 uint8_t EspDrv::_remoteIp[] = {0};
 
 
-void EspDrv::wifiDriverInit(Stream *espSerial)
+void EspDrv::wifiDriverInit(HardwareSerial *espSerial, unsigned long baudRate, unsigned long originalBaudRate)
 {
 	LOGDEBUG(F("> wifiDriverInit"));
 
 	EspDrv::espSerial = espSerial;
+	espSerial->begin(baudRate);
+	delay(100);
+
 
 	if (sendCmd(F("AT")) != TAG_OK)
 	{
 		LOGERROR(F("Cannot initialize ESP module"));
-		delay(5000);
-		return;
+
+		delay(2000);
+
+		if (baudRate != originalBaudRate) {
+			espSerial->end();
+			espSerial->begin(originalBaudRate);
+			delay(100);
+
+			if (sendCmd(F("AT")) != TAG_OK) {
+				LOGERROR(F("Cannot initialize ESP module using original baud rate"));
+				return;
+			} else {
+				sendCmd(F("AT+UART_DEF=%d,8,1,0,0"), 5000, baudRate);
+
+					espSerial->end();
+					espSerial->begin(baudRate);
+
+					delay(2000);
+
+					if (sendCmd(F("AT")) != TAG_OK)
+					{
+						LOGERROR(F("Cannot initialize ESP module after baud rate change"));
+						delay(2000);
+						return;
+					}
+			}
+		} else {
+			return;
+		}
 	}
 
 	reset();
 
-	// check firmware version
+	/*// check firmware version
 	getFwVersion();
 
 	// prints a warning message if the firmware is not 1.X
@@ -90,12 +120,11 @@ void EspDrv::wifiDriverInit(Stream *espSerial)
 		fwVersion[1] != '.')
 	{
 		LOGWARN1(F("Warning: Unsupported firmware"), fwVersion);
-		delay(4000);
 	}
 	else
 	{
 		LOGINFO1(F("Initilization successful -"), fwVersion);
-	}
+	}*/
 }
 
 
@@ -128,8 +157,6 @@ void EspDrv::reset()
 	sendCmd(F("AT+CWDHCP=1,1"));
 	delay(200);
 }
-
-
 
 bool EspDrv::wifiConnect(char* ssid, const char *passphrase)
 {
@@ -446,8 +473,6 @@ uint8_t EspDrv::getScanNetworks()
 {
     uint8_t ssidListNum = 0;
     int idx;
-	bool ret = false;
-	
 
 	espEmptyBuf();
 
@@ -455,8 +480,6 @@ uint8_t EspDrv::getScanNetworks()
 	LOGDEBUG(F(">> AT+CWLAP"));
 	
 	espSerial->println(F("AT+CWLAP"));
-
-	char buf[100];
 	
 	idx = readUntil(10000, "+CWLAP:(");
 	
@@ -530,16 +553,18 @@ char* EspDrv::getSSIDNetoworks(uint8_t networkItem)
 
 uint8_t EspDrv::getEncTypeNetowrks(uint8_t networkItem)
 {
-	if (networkItem >= WL_NETWORKS_LIST_MAXNUM)
-		return NULL;
+	if (networkItem >= WL_NETWORKS_LIST_MAXNUM) {
+		return 0;
+	}
 
     return _networkEncr[networkItem];
 }
 
 int32_t EspDrv::getRSSINetoworks(uint8_t networkItem)
 {
-	if (networkItem >= WL_NETWORKS_LIST_MAXNUM)
-		return NULL;
+	if (networkItem >= WL_NETWORKS_LIST_MAXNUM) {
+		return 0;
+	}
 
     return _networkRssi[networkItem];
 }
@@ -563,7 +588,7 @@ bool EspDrv::ping(const char *host)
 
 	int ret = sendCmd(F("AT+PING=\"%s\""), 2000, host);
 
-	if (ret==TAG_OK);
+	if (ret==TAG_OK)
 	{
 		return true;
 	}
@@ -597,7 +622,7 @@ bool EspDrv::startClient(const char* host, uint16_t port, uint8_t sock, uint8_t 
 	// for UDP we set a dummy remote port and UDP mode to 2
 	// this allows to specify the target host/port in CIPSEND
 
-	int ret;
+	int ret = TAG_ERROR;
 	if (protMode==TCP_MODE)
 		ret = sendCmd(F("AT+CIPSTART=%d,\"TCP\",\"%s\",%u"), 5000, sock, host, port);
 	else if (protMode==SSL_MODE)
@@ -618,7 +643,7 @@ void EspDrv::stopClient(uint8_t sock)
 {
 	LOGDEBUG1(F("> stopClient"), sock);
 
-	int ret = sendCmd(F("AT+CIPCLOSE=%d"), 4000, sock);
+	sendCmd(F("AT+CIPCLOSE=%d"), 4000, sock);
 }
 
 
@@ -762,12 +787,12 @@ bool EspDrv::getData(uint8_t connId, uint8_t *data, bool peek, bool* connClose)
 int EspDrv::getDataBuf(uint8_t connId, uint8_t *buf, uint16_t bufSize)
 {
 	if (connId!=_connId)
-		return false;
+		return -1;
 
 	if(_bufPos<bufSize)
 		bufSize = _bufPos;
 	
-	for(int i=0; i<bufSize; i++)
+	for(uint16_t i=0; i<bufSize; i++)
 	{
 		int c = timedRead();
 		//LOGDEBUG(c);
@@ -828,7 +853,7 @@ bool EspDrv::sendData(uint8_t sock, const __FlashStringHelper *data, uint16_t le
 
 	//espSerial->write(data, len);
 	PGM_P p = reinterpret_cast<PGM_P>(data);
-	for (int i=0; i<len; i++)
+	for (uint16_t i=0; i<len; i++)
 	{
 		unsigned char c = pgm_read_byte(p++);
 		espSerial->write(c);
@@ -1029,7 +1054,7 @@ int EspDrv::sendCmd(const __FlashStringHelper* cmd, int timeout, ...)
 // Returns:
 //   the index of the tag found in the ESPTAGS array
 //   -1 if no tag was found (timeout)
-int EspDrv::readUntil(int timeout, const char* tag, bool findTags)
+int EspDrv::readUntil(unsigned int timeout, const char* tag, bool findTags)
 {
 	ringBuf.reset();
 
@@ -1098,7 +1123,7 @@ void EspDrv::espEmptyBuf(bool warn)
 // copied from Serial::timedRead
 int EspDrv::timedRead()
 {
-  int _timeout = 1000;
+  unsigned int _timeout = 1000;
   int c;
   long _startMillis = millis();
   do
