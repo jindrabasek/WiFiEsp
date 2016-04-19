@@ -158,7 +158,7 @@ void EspDrv::reset()
 	delay(200);
 }
 
-bool EspDrv::wifiConnect(char* ssid, const char *passphrase)
+bool EspDrv::wifiConnect(const char* ssid, const char *passphrase)
 {
 	LOGDEBUG(F("> wifiConnect"));
 

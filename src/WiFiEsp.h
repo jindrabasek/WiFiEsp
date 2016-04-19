@@ -72,7 +72,7 @@ public:
 	* param passphrase: Passphrase. Valid characters in a passphrase
 	*		  must be between ASCII 32-126 (decimal).
 	*/
-	int begin(char* ssid, const char* passphrase);
+	int begin(const char* ssid, const char* passphrase);
 
 
 	/**

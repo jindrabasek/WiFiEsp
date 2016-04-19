@@ -45,7 +45,7 @@ char* WiFiEspClass::firmwareVersion()
 }
 
 
-int WiFiEspClass::begin(char* ssid, const char *passphrase)
+int WiFiEspClass::begin(const char* ssid, const char *passphrase)
 {
     espMode = 1;
 	if (EspDrv::wifiConnect(ssid, passphrase))
