@@ -766,7 +766,9 @@ bool EspDrv::getData(uint8_t connId, uint8_t *data, bool peek, bool* connClose)
 			}
 
 			return true;
-		}
+		}else {
+            yield();
+        }
 	} while(millis() - _startMillis < 2000);
 
     // timed out, reset the buffer
@@ -1089,6 +1091,8 @@ int EspDrv::readUntil(unsigned int timeout, const char* tag, bool findTags)
 					}
 				}
 			}
+		} else {
+		    yield();
 		}
     }
 
