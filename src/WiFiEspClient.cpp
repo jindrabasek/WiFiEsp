@@ -26,14 +26,13 @@ along with The Arduino WiFiEsp library.  If not, see
 #include "utility/debug.h"
 
 
-WiFiEspClient::WiFiEspClient() : _sock(255)
+WiFiEspClient::WiFiEspClient() : WiFiEspClient(255)
 {
 }
 
-WiFiEspClient::WiFiEspClient(uint8_t sock) : _sock(sock)
+WiFiEspClient::WiFiEspClient(uint8_t sock) : _sock(sock), useSsl(false)
 {
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Overrided Print methods
@@ -72,7 +71,7 @@ int WiFiEspClient::connectSSL(IPAddress ip, uint16_t port)
 
 int WiFiEspClient::connect(const char* host, uint16_t port)
 {
-    return connect(host, port, TCP_MODE);
+    return connect(host, port, useSsl ? SSL_MODE : TCP_MODE);
 }
 
 int WiFiEspClient::connect(IPAddress ip, uint16_t port)
@@ -80,7 +79,7 @@ int WiFiEspClient::connect(IPAddress ip, uint16_t port)
 	char s[16];
 	sprintf(s, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
 
-	return connect(s, port, TCP_MODE);
+	return connect(s, port, useSsl ? SSL_MODE : TCP_MODE);
 }
 
 /* Private method */

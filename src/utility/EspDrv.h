@@ -25,6 +25,8 @@ along with The Arduino WiFiEsp library.  If not, see
 
 #include "RingBuffer.h"
 
+#include <stddef.h>
+
 
 
 // Maximum size of a SSID

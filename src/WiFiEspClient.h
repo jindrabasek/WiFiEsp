@@ -112,6 +112,8 @@ public:
   virtual uint8_t connected();
 
 
+
+
   uint8_t status();
   
   virtual operator bool();
@@ -128,13 +130,17 @@ public:
   * Returns the remote IP address.
   */
   IPAddress remoteIP();
-  
+
+  void setUseSsl(bool useSsl) {
+    this->useSsl = useSsl;
+  }
 
   friend class WiFiEspServer;
 
 private:
 
   uint8_t _sock;     // connection id
+  bool useSsl;
 
   uint8_t getFirstSocket();
   int connect(const char* host, uint16_t port, uint8_t protMode);
