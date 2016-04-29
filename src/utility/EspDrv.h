@@ -285,6 +285,8 @@ public:
     static void getRemoteIpAddress(IPAddress& ip);
     static uint16_t getRemotePort();
 
+    static void flushReceiveBuffer();
+
 
 ////////////////////////////////////////////////////////////////////////////////
 

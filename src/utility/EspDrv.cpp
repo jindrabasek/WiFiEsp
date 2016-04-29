@@ -111,20 +111,6 @@ void EspDrv::wifiDriverInit(HardwareSerial *espSerial, unsigned long baudRate, u
 	}
 
 	reset();
-
-	/*// check firmware version
-	getFwVersion();
-
-	// prints a warning message if the firmware is not 1.X
-	if (fwVersion[0] != '1' or
-		fwVersion[1] != '.')
-	{
-		LOGWARN1(F("Warning: Unsupported firmware"), fwVersion);
-	}
-	else
-	{
-		LOGINFO1(F("Initilization successful -"), fwVersion);
-	}*/
 }
 
 
@@ -644,6 +630,12 @@ void EspDrv::stopClient(uint8_t sock)
 	LOGDEBUG1(F("> stopClient"), sock);
 
 	sendCmd(F("AT+CIPCLOSE=%d"), 4000, sock);
+    flushReceiveBuffer();
+}
+
+void EspDrv::flushReceiveBuffer()
+{
+    _bufPos = 0;
 }
 
 
@@ -662,7 +654,7 @@ uint8_t EspDrv::getServerState(uint8_t sock)
 
 uint16_t EspDrv::availData(uint8_t connId)
 {
-    //LOGDEBUG(bufPos);
+    LOGDEBUG1(F("Buffer poss availData"), _bufPos);
 
 	// if there is data in the buffer
 	if (_bufPos>0)
@@ -673,41 +665,35 @@ uint16_t EspDrv::availData(uint8_t connId)
 			return _bufPos;
 	}
 
+    if (readUntil(2000, "+IPD,", false))
+    {
+        // format is : +IPD,<id>,<len>:<data>
+        // format is : +IPD,<ID>,<len>[,<remote IP>,<remote port>]:<data>
 
-    int bytes = espSerial->available();
+        _connId = espSerial->parseInt();    // <ID>
+        espSerial->read();                  // ,
+        _bufPos = espSerial->parseInt();    // <len>
+        espSerial->read();                  // "
+        _remoteIp[0] = espSerial->parseInt();    // <remote IP>
+        espSerial->read();                  // .
+        _remoteIp[1] = espSerial->parseInt();
+        espSerial->read();                  // .
+        _remoteIp[2] = espSerial->parseInt();
+        espSerial->read();                  // .
+        _remoteIp[3] = espSerial->parseInt();
+        espSerial->read();                  // "
+        espSerial->read();                  // ,
+        _remotePort = espSerial->parseInt();     // <remote port>
 
-	if (bytes)
-	{
-		//LOGDEBUG1(F("Bytes in the serial buffer: "), bytes);
-		if (espSerial->find((char *)"+IPD,"))
-		{
-			// format is : +IPD,<id>,<len>:<data>
-			// format is : +IPD,<ID>,<len>[,<remote IP>,<remote port>]:<data>
+        espSerial->read();                  // :
 
-			_connId = espSerial->parseInt();    // <ID>
-			espSerial->read();                  // ,
-			_bufPos = espSerial->parseInt();    // <len>
-			espSerial->read();                  // "
-			_remoteIp[0] = espSerial->parseInt();    // <remote IP>
-			espSerial->read();                  // .
-			_remoteIp[1] = espSerial->parseInt();
-			espSerial->read();                  // .
-			_remoteIp[2] = espSerial->parseInt();
-			espSerial->read();                  // .
-			_remoteIp[3] = espSerial->parseInt();
-			espSerial->read();                  // "
-			espSerial->read();                  // ,
-			_remotePort = espSerial->parseInt();     // <remote port>
-			
-			espSerial->read();                  // :
+        LOGDEBUG();
+        LOGDEBUG2(F("Data packet"), _connId, _bufPos);
 
-			LOGDEBUG();
-			LOGDEBUG2(F("Data packet"), _connId, _bufPos);
+        if(_connId==connId || connId==0)
+            return _bufPos;
+    }
 
-			if(_connId==connId || connId==0)
-				return _bufPos;
-		}
-	}
 	return 0;
 }
 
@@ -751,7 +737,7 @@ bool EspDrv::getData(uint8_t connId, uint8_t *data, bool peek, bool* connClose)
 					// 48 = '0'
 					if (espSerial->peek()==48+connId)
 					{
-						int idx = readUntil(500, ",CLOSED\r\n", false);
+						int idx = readUntil(1000, ",CLOSED\r\n", false);
 						if(idx!=NUMESPTAGS)
 						{
 							LOGERROR(F("Tag CLOSED not found"));
@@ -774,7 +760,7 @@ bool EspDrv::getData(uint8_t connId, uint8_t *data, bool peek, bool* connClose)
     // timed out, reset the buffer
 	LOGERROR1(F("TIMEOUT:"), _bufPos);
 
-    _bufPos = 0;
+    flushReceiveBuffer();
 	_connId = 0;
 	*data = 0;
 	
@@ -817,7 +803,7 @@ bool EspDrv::sendData(uint8_t sock, const uint8_t *data, uint16_t len)
 	sprintf_P(cmdBuf, PSTR("AT+CIPSEND=%d,%u"), sock, len);
 	espSerial->println(cmdBuf);
 
-	int idx = readUntil(1000, (char *)">", false);
+	int idx = readUntil(2000, (char *)">", false);
 	if(idx!=NUMESPTAGS)
 	{
 		LOGERROR(F("Data packet send error (1)"));
@@ -826,7 +812,7 @@ bool EspDrv::sendData(uint8_t sock, const uint8_t *data, uint16_t len)
 
 	espSerial->write(data, len);
 
-	idx = readUntil(2000);
+	idx = readUntil(3000);
 	if(idx!=TAG_SENDOK)
 	{
 		LOGERROR(F("Data packet send error (2)"));
@@ -846,7 +832,7 @@ bool EspDrv::sendData(uint8_t sock, const __FlashStringHelper *data, uint16_t le
 	sprintf_P(cmdBuf, PSTR("AT+CIPSEND=%d,%u"), sock, len2);
 	espSerial->println(cmdBuf);
 
-	int idx = readUntil(1000, (char *)">", false);
+	int idx = readUntil(2000, (char *)">", false);
 	if(idx!=NUMESPTAGS)
 	{
 		LOGERROR(F("Data packet send error (1)"));
@@ -866,7 +852,7 @@ bool EspDrv::sendData(uint8_t sock, const __FlashStringHelper *data, uint16_t le
 		espSerial->write('\n');
 	}
 
-	idx = readUntil(2000);
+	idx = readUntil(3000);
 	if(idx!=TAG_SENDOK)
 	{
 		LOGERROR(F("Data packet send error (2)"));
@@ -886,7 +872,7 @@ bool EspDrv::sendDataUdp(uint8_t sock, const char* host, uint16_t port, const ui
 	//LOGDEBUG1(F("> sendDataUdp:"), cmdBuf);
 	espSerial->println(cmdBuf);
 
-	int idx = readUntil(1000, (char *)">", false);
+	int idx = readUntil(2000, (char *)">", false);
 	if(idx!=NUMESPTAGS)
 	{
 		LOGERROR(F("Data packet send error (1)"));
@@ -895,7 +881,7 @@ bool EspDrv::sendDataUdp(uint8_t sock, const char* host, uint16_t port, const ui
 
 	espSerial->write(data, len);
 
-	idx = readUntil(2000);
+	idx = readUntil(3000);
 	if(idx!=TAG_SENDOK)
 	{
 		LOGERROR(F("Data packet send error (2)"));
@@ -945,7 +931,7 @@ bool EspDrv::sendCmdGet(const __FlashStringHelper* cmd, const char* startTag, co
 	espSerial->println(cmd);
 
 	// read result until the startTag is found
-	idx = readUntil(1000, startTag);
+	idx = readUntil(2000, startTag);
 
 	if(idx==NUMESPTAGS)
 	{
@@ -953,7 +939,7 @@ bool EspDrv::sendCmdGet(const __FlashStringHelper* cmd, const char* startTag, co
 		ringBuf.init();
 
 		// start tag found, search the endTag
-		idx = readUntil(500, endTag);
+		idx = readUntil(1000, endTag);
 
 		if(idx==NUMESPTAGS)
 		{
@@ -962,7 +948,7 @@ bool EspDrv::sendCmdGet(const __FlashStringHelper* cmd, const char* startTag, co
 			ringBuf.getStrN(outStr, strlen(endTag), outStrLen-1);
 
 			// read the remaining part of the response
-			readUntil(2000);
+			readUntil(3000);
 
 			ret = true;
 		}
@@ -1063,6 +1049,8 @@ int EspDrv::readUntil(unsigned int timeout, const char* tag, bool findTags)
 	char c;
     unsigned long start = millis();
 	int ret = -1;
+
+	LOGDEBUG1(F("Read until: "), tag != NULL ? tag : "");
 
 	while ((millis() - start < timeout) and ret<0)
 	{

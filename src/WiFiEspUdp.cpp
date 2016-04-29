@@ -155,6 +155,7 @@ int WiFiEspUDP::peek()
 
 void WiFiEspUDP::flush()
 {
+    EspDrv::flushReceiveBuffer();
   // TODO: a real check to ensure transmission has been completed
 }
 
