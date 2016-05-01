@@ -44,7 +44,8 @@ typedef enum
 } TagsEnum;
 
 
-Stream *EspDrv::espSerial;
+HardwareSerial *EspDrv::espSerial = NULL;
+int8_t EspDrv::resetPin = -1;
 
 RingBuffer EspDrv::ringBuf(32);
 
@@ -57,7 +58,6 @@ uint8_t EspDrv::_networkEncr[WL_NETWORKS_LIST_MAXNUM] = { 0 };
 char EspDrv::_ssid[] = {0};
 uint8_t EspDrv::_bssid[] = {0};
 uint8_t EspDrv::_mac[] = {0};
-uint8_t EspDrv::_localIp[] = {0};
 char EspDrv::fwVersion[] = {0};
 
 long EspDrv::_bufPos=0;
@@ -67,11 +67,14 @@ uint16_t EspDrv::_remotePort  =0;
 uint8_t EspDrv::_remoteIp[] = {0};
 
 
-void EspDrv::wifiDriverInit(HardwareSerial *espSerial, unsigned long baudRate, unsigned long originalBaudRate)
+void EspDrv::wifiDriverInit(HardwareSerial *espSerial, unsigned long baudRate, int8_t resetPin, unsigned long originalBaudRate)
 {
 	LOGDEBUG(F("> wifiDriverInit"));
 
 	EspDrv::espSerial = espSerial;
+	EspDrv::resetPin = resetPin;
+
+	espSerial->end();
 	espSerial->begin(baudRate);
 	delay(100);
 
@@ -113,6 +116,32 @@ void EspDrv::wifiDriverInit(HardwareSerial *espSerial, unsigned long baudRate, u
 	reset();
 }
 
+// Folowing method is taken from Adafruit WiFi ESP8266 library
+// https://github.com/adafruit/Adafruit_ESP8266/blob/master/Adafruit_ESP8266.cpp
+// ESP8266 is reset by momentarily connecting RST to GND.  Level shifting is
+// not necessary provided you don't accidentally set the pin to HIGH output.
+// It's generally safe-ish as the default Arduino pin state is INPUT (w/no
+// pullup) -- setting to LOW provides an open-drain for reset.
+bool EspDrv::hardReset() {
+  if (resetPin < 0) {
+      return false;
+  }
+
+  if (espSerial != NULL) {
+      espSerial->end();
+  }
+
+  digitalWrite(resetPin, LOW);
+  pinMode(resetPin, OUTPUT); // Open drain; reset -> GND
+  delay(10);                  // Hold a moment
+  pinMode(resetPin, INPUT);  // Back to high-impedance pin state
+  delay(3000);
+
+  flushReceiveBuffer();
+  _connId = 0;
+
+  return true;
+}
 
 void EspDrv::reset()
 {
@@ -142,6 +171,9 @@ void EspDrv::reset()
 	// enable DHCP
 	sendCmd(F("AT+CWDHCP=1,1"));
 	delay(200);
+
+	flushReceiveBuffer();
+	_connId = 0;
 }
 
 bool EspDrv::wifiConnect(const char* ssid, const char *passphrase)
@@ -364,6 +396,7 @@ void EspDrv::getIpAddress(IPAddress& ip)
 	{
 		char* token;
 
+		uint8_t  _localIp[WL_IPV4_LENGTH];
 		token = strtok(buf, ".");
 		_localIp[0] = atoi(token);
 		token = strtok(NULL, ".");
@@ -386,6 +419,7 @@ void EspDrv::getIpAddressAP(IPAddress& ip)
 	{
 		char* token;
 
+		uint8_t  _localIp[WL_IPV4_LENGTH];
 		token = strtok(buf, ".");
 		_localIp[0] = atoi(token);
 		token = strtok(NULL, ".");

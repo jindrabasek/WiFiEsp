@@ -22,9 +22,7 @@ along with The Arduino WiFiEsp library.  If not, see
 #include <Server.h>
 
 #include "WiFiEsp.h"
-
-
-class WiFiEspClient;
+#include "WiFiEspClient.h"
 
 class WiFiEspServer : public Server
 {
@@ -56,7 +54,7 @@ public:
 
 private:
 	uint16_t _port;
-	bool _started;
+	bool _started = false;
 
 };
 

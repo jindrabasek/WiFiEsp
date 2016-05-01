@@ -25,6 +25,7 @@ along with The Arduino WiFiEsp library.  If not, see
 
 #include "RingBuffer.h"
 
+#include <HardwareSerial.h>
 #include <stddef.h>
 
 
@@ -123,7 +124,8 @@ public:
 
 	static const unsigned long DEFAULT_ORIGINAL_BAUD_RATE = 115200;
 
-    static void wifiDriverInit(HardwareSerial *espSerial, unsigned long baudRate, unsigned long originalBaudRate = DEFAULT_ORIGINAL_BAUD_RATE);
+    static void wifiDriverInit(HardwareSerial *espSerial, unsigned long baudRate,
+                               int8_t resetPin = -1, unsigned long originalBaudRate = DEFAULT_ORIGINAL_BAUD_RATE);
 
 
     /* Start Wifi connection with passphrase
@@ -260,6 +262,9 @@ public:
      */
     static char* getFwVersion();
 
+    static bool hardReset();
+    static void reset();
+
 
 	////////////////////////////////////////////////////////////////////////////
 	// Client/Server methods
@@ -280,7 +285,6 @@ public:
 
 
 	static bool ping(const char *host);
-    static void reset();
 
     static void getRemoteIpAddress(IPAddress& ip);
     static uint16_t getRemotePort();
@@ -291,8 +295,9 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 
 private:
-	static Stream *espSerial;
+	static HardwareSerial *espSerial;
 
+	static int8_t resetPin;
 	static long _bufPos;
 	static uint8_t _connId;
 
@@ -313,7 +318,6 @@ private:
 	static char 	_ssid[WL_SSID_MAX_LENGTH];
 	static uint8_t 	_bssid[WL_MAC_ADDR_LENGTH];
 	static uint8_t 	_mac[WL_MAC_ADDR_LENGTH];
-	static uint8_t  _localIp[WL_IPV4_LENGTH];
 
 
 	// the ring buffer is used to search the tags in the stream

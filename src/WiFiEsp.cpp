@@ -31,10 +31,10 @@ WiFiEspClass::WiFiEspClass()
 
 }
 
-void WiFiEspClass::init(HardwareSerial *espSerial, unsigned long baudRate, unsigned long originalBaudRate)
+void WiFiEspClass::init(HardwareSerial *espSerial, unsigned long baudRate, int8_t resetPin,  unsigned long originalBaudRate)
 {
     LOGINFO(F("Initializing ESP module"));
-	EspDrv::wifiDriverInit(espSerial, baudRate, originalBaudRate);
+	EspDrv::wifiDriverInit(espSerial, baudRate, resetPin, originalBaudRate);
 }
 
 
@@ -188,17 +188,12 @@ void WiFiEspClass::reset(void)
 }
 
 
-/*
-void ESP8266::hardReset(void)
+
+bool WiFiEspClass::hardReset(void)
 {
-connected = false;
-strcpy(ip, "");
-digitalWrite(ESP8266_RST, LOW);
-delay(ESP8266_HARD_RESET_DURACTION);
-digitalWrite(ESP8266_RST, HIGH);
-delay(ESP8266_HARD_RESET_DURACTION);
+    return EspDrv::hardReset();
 }
-*/
+
 
 
 bool WiFiEspClass::ping(const char *host)

@@ -48,7 +48,8 @@ public:
 	*
 	* param espSerial: the serial interface (HW or SW) used to communicate with the ESP module
 	*/
-	static void init(HardwareSerial *espSerial, unsigned long baudRate, unsigned long originalBaudRate = EspDrv::DEFAULT_ORIGINAL_BAUD_RATE);
+	static void init(HardwareSerial *espSerial, unsigned long baudRate,
+	                 int8_t resetPin = -1, unsigned long originalBaudRate = EspDrv::DEFAULT_ORIGINAL_BAUD_RATE);
 
 
 	/**
@@ -250,6 +251,12 @@ public:
 	* Restart the ESP module.
 	*/
 	void reset();
+
+    /**
+    * Restart the ESP module using hardware pin.
+    * This method does not initialize ESP
+    */
+    bool hardReset();
 
 	/**
 	* Ping a host.
