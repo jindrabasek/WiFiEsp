@@ -135,7 +135,7 @@ bool EspDrv::hardReset() {
   pinMode(resetPin, OUTPUT); // Open drain; reset -> GND
   delay(10);                  // Hold a moment
   pinMode(resetPin, INPUT);  // Back to high-impedance pin state
-  delay(3000);
+  delay(5000);
 
   flushReceiveBuffer();
   _connId = 0;
