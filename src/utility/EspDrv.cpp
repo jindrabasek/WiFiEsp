@@ -47,7 +47,7 @@ typedef enum
 HardwareSerial *EspDrv::espSerial = NULL;
 int8_t EspDrv::resetPin = -1;
 
-RingBuffer EspDrv::ringBuf(32);
+RingBuffer<EspDrv::RING_BUFFER_SIZE> EspDrv::ringBuf;
 
 // Array of data to cache the information related to the networks discovered
 char 	EspDrv::_networkSsid[][WL_SSID_MAX_LENGTH] = {{"1"},{"2"},{"3"},{"4"},{"5"}};
@@ -332,7 +332,7 @@ uint8_t EspDrv::getConnectionStatus()
 
 	// 4: client disconnected
 	// 5: wifi disconnected
-	int s = atoi(buf);
+	byte s = atoi(buf);
 	if(s==2 or s==3 or s==4)
 		return WL_CONNECTED;
 	else if(s==5)
@@ -1104,7 +1104,7 @@ int EspDrv::readUntil(unsigned int timeout, const char* tag, bool findTags)
 			}
 			if(findTags)
 			{
-				for(int i=0; i<NUMESPTAGS; i++)
+				for(byte i=0; i<NUMESPTAGS; i++)
 				{
 					if (ringBuf.endsWith(ESPTAGS[i]))
 					{

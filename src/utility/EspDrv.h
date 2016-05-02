@@ -319,9 +319,9 @@ private:
 	static uint8_t 	_bssid[WL_MAC_ADDR_LENGTH];
 	static uint8_t 	_mac[WL_MAC_ADDR_LENGTH];
 
-
+	static const uint8_t RING_BUFFER_SIZE = 32;
 	// the ring buffer is used to search the tags in the stream
-	static RingBuffer ringBuf;
+	static RingBuffer<RING_BUFFER_SIZE> ringBuf;
 
 
 	//static int sendCmd(const char* cmd, int timeout=1000);

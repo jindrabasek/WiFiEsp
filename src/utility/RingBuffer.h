@@ -19,29 +19,95 @@ along with The Arduino WiFiEsp library.  If not, see
 #ifndef RingBuffer_h
 #define RingBuffer_h
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
 
+template <uint8_t size>
 class RingBuffer
 {
 public:
-	RingBuffer(unsigned int size);
-	~RingBuffer();
+	RingBuffer()
+	{
+	    ringBufEnd = &ringBuf[size];
+	    reset();
+	}
 
-	void reset();
-	void init();
-	void push(char c);
-	int getPos();
-	bool endsWith(const char* str);
-	void getStr(char * destination, unsigned int skipChars);
-	void getStrN(char * destination, unsigned int skipChars, unsigned int num);
+	void reset()
+	{
+	    ringBufP = ringBuf;
+	}
 
+	void init()
+    {
+        reset();
+        memset(ringBuf, 0, size+1);
+    }
+
+	void push(char c)
+	{
+	    *ringBufP = c;
+	    ringBufP++;
+	    if (ringBufP>=ringBufEnd)
+	        ringBufP = ringBuf;
+	}
+
+	bool endsWith(const char* str)
+	{
+	    int findStrLen = strlen(str);
+
+	    // b is the start position into the ring buffer
+	    char* b = ringBufP-findStrLen;
+	    if(b < ringBuf) {
+	        b += size;
+	    }
+
+	    char *p1 = (char*)&str[0];
+	    char *p2 = p1 + findStrLen;
+
+	    for(char *p=p1; p<p2; p++)
+	    {
+	        if(*p != *b)
+	            return false;
+
+	        b++;
+	        if (b == ringBufEnd)
+	            b=ringBuf;
+	    }
+
+	    return true;
+	}
+
+	void getStr(char * destination, unsigned int skipChars)
+	{
+	    int len = ringBufP-ringBuf-skipChars;
+
+	    // copy buffer to destination string
+	    strncpy(destination, ringBuf, len);
+
+	    // terminate output string
+	    //destination[len]=0;
+	}
+
+	void getStrN(char * destination, unsigned int skipChars, unsigned int num)
+	{
+	    unsigned int len = ringBufP-ringBuf-skipChars;
+
+	    if (len>num)
+	        len=num;
+
+	    // copy buffer to destination string
+	    strncpy(destination, ringBuf, len);
+
+	    // terminate output string
+	    //destination[len]=0;
+	}
 
 private:
-
-	unsigned int _size;
-	char* ringBuf;
+	// add one char to terminate the string
+	char ringBuf[size + 1] = {0};
 	char* ringBufEnd;
 	char* ringBufP;
-
 };
 
 #endif
