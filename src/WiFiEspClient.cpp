@@ -65,7 +65,7 @@ int WiFiEspClient::connectSSL(const char* host, uint16_t port)
 int WiFiEspClient::connectSSL(IPAddress ip, uint16_t port)
 {
 	char s[16];
-	sprintf(s, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+	sprintf(s, PSTR("%d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
 	return connect(s, port, SSL_MODE);
 }
 
@@ -77,7 +77,7 @@ int WiFiEspClient::connect(const char* host, uint16_t port)
 int WiFiEspClient::connect(IPAddress ip, uint16_t port)
 {
 	char s[16];
-	sprintf(s, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+	sprintf(s, PSTR("%d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
 
 	return connect(s, port, useSsl ? SSL_MODE : TCP_MODE);
 }
@@ -119,7 +119,13 @@ size_t WiFiEspClient::write(const uint8_t *buf, size_t size)
 		return 0;
 	}
 
-	bool r = EspDrv::sendData(_sock, buf, size);
+	bool r;
+	if (sendexBufferPosition < 0) {
+	    r = EspDrv::sendData(_sock, buf, size);
+	} else {
+	    r = EspDrv::sendDataEx(_sock, buf, size, sendexBufferPosition);
+	}
+
 	if (!r)
 	{
 		setWriteError();
@@ -288,7 +294,13 @@ size_t WiFiEspClient::printFSH(const __FlashStringHelper *ifsh, bool appendCrLf)
 		return 0;
 	}
 
-	bool r = EspDrv::sendData(_sock, ifsh, size, appendCrLf);
+    bool r;
+    if (sendexBufferPosition < 0) {
+        r = EspDrv::sendData(_sock, ifsh, size, appendCrLf);
+    } else {
+        r = EspDrv::sendDataEx(_sock, ifsh, size, sendexBufferPosition, appendCrLf);
+    }
+
 	if (!r)
 	{
 		setWriteError();
@@ -302,5 +314,18 @@ size_t WiFiEspClient::printFSH(const __FlashStringHelper *ifsh, bool appendCrLf)
 }
 
 WiFiEspClient::~WiFiEspClient() {
+    endPacket();
 	stop();
+}
+
+void WiFiEspClient::beginPacket() {
+    endPacket();
+    sendexBufferPosition = 0;
+}
+
+void WiFiEspClient::endPacket() {
+    if (sendexBufferPosition > 0) {
+        EspDrv::endPacket(sendexBufferPosition);
+    }
+    sendexBufferPosition = -1;
 }

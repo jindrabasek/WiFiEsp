@@ -19,17 +19,11 @@ along with The Arduino WiFiEsp library.  If not, see
 #ifndef WiFiEsp_h
 #define WiFiEsp_h
 
-#include <Arduino.h>
-#include <Stream.h>
+#include <HardwareSerial.h>
 #include <IPAddress.h>
-#include <inttypes.h>
-
-
-#include "WiFiEspClient.h"
-#include "WiFiEspServer.h"
-#include "utility/EspDrv.h"
-#include "utility/RingBuffer.h"
-#include "utility/debug.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include <utility/EspDrv.h>
 
 
 class WiFiEspClass

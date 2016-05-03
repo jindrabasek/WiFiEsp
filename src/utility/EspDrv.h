@@ -123,6 +123,7 @@ class EspDrv
 public:
 
 	static const unsigned long DEFAULT_ORIGINAL_BAUD_RATE = 115200;
+	static const int SENDEX_BUFFER_LENGTH = 2048;
 
     static void wifiDriverInit(HardwareSerial *espSerial, unsigned long baudRate,
                                int8_t resetPin = -1, unsigned long originalBaudRate = DEFAULT_ORIGINAL_BAUD_RATE);
@@ -280,6 +281,11 @@ public:
     static int getDataBuf(uint8_t connId, uint8_t *buf, uint16_t bufSize);
     static bool sendData(uint8_t sock, const uint8_t *data, uint16_t len);
     static bool sendData(uint8_t sock, const __FlashStringHelper *data, uint16_t len, bool appendCrLf=false);
+    static bool sendDataEx(uint8_t sock, const uint8_t *data, uint16_t len, int & sendexBufferPosition);
+    static bool sendDataEx(uint8_t sock, const __FlashStringHelper *data, uint16_t len, int & sendexBufferPosition, bool appendCrLf=false);
+    static bool beginPacket(uint8_t sock);
+    static bool endPacket(int & sendexBufferPosition);
+
 	static bool sendDataUdp(uint8_t sock, const char* host, uint16_t port, const uint8_t *data, uint16_t len);
     static uint16_t availData(uint8_t connId);
 

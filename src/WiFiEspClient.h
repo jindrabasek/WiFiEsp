@@ -137,9 +137,14 @@ public:
 
   friend class WiFiEspServer;
 
+  void beginPacket();
+  void endPacket();
+
 private:
 
   uint8_t _sock;     // connection id
+  // -1 means do not use cipsendex
+  int sendexBufferPosition = -1;
   bool useSsl;
 
   uint8_t getFirstSocket();

@@ -25,14 +25,15 @@ along with The Arduino WiFiEsp library.  If not, see
 
 #define NUMESPTAGS 5
 
-const char* ESPTAGS[] =
-{
-    "\r\nOK\r\n",
-	"\r\nERROR\r\n",
-	"\r\nFAIL\r\n",
-    "\r\nSEND OK\r\n",
-    " CONNECT\r\n"
-};
+const char TAG1[] PROGMEM = "\r\nOK\r\n";
+const char TAG2[] PROGMEM = "\r\nERROR\r\n";
+const char TAG3[] PROGMEM = "\r\nFAIL\r\n";
+const char TAG4[] PROGMEM = "\r\nSEND OK\r\n";
+const char TAG5[] PROGMEM = " CONNECT\r\n";
+
+const char PATH_FORMAT[] PROGMEM = "/asset/%s/state";
+
+const char* const ESPTAGS[] PROGMEM = { TAG1, TAG2, TAG3, TAG4, TAG5, };
 
 typedef enum
 {
@@ -133,7 +134,7 @@ bool EspDrv::hardReset() {
 
   digitalWrite(resetPin, LOW);
   pinMode(resetPin, OUTPUT); // Open drain; reset -> GND
-  delay(10);                  // Hold a moment
+  delay(20);                  // Hold a moment
   pinMode(resetPin, INPUT);  // Back to high-impedance pin state
   delay(5000);
 
@@ -263,7 +264,7 @@ void EspDrv::config(IPAddress ip)
 	delay(500);
 	
 	char buf[16];
-	sprintf(buf, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+	sprintf(buf, PSTR("%d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
 
 	int ret = sendCmd(F("AT+CIPSTA_CUR=\"%s\""), 2000, buf);
 	delay(500);
@@ -287,7 +288,7 @@ void EspDrv::configAP(IPAddress ip)
 	delay(500);
 	
 	char buf[16];
-	sprintf(buf, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+	sprintf(buf, PSTR("%d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
 
 	int ret = sendCmd(F("AT+CIPAP_CUR=\"%s\""), 2000, buf);
 	delay(500);
@@ -688,7 +689,7 @@ uint8_t EspDrv::getServerState(uint8_t sock)
 
 uint16_t EspDrv::availData(uint8_t connId)
 {
-    LOGDEBUG1(F("Buffer poss availData"), _bufPos);
+    //LOGDEBUG1(F("Buffer poss availData"), _bufPos);
 
 	// if there is data in the buffer
 	if (_bufPos>0)
@@ -856,7 +857,119 @@ bool EspDrv::sendData(uint8_t sock, const uint8_t *data, uint16_t len)
     return true;
 }
 
-// Overrided sendData method for __FlashStringHelper strings
+bool EspDrv::sendDataEx(uint8_t sock, const uint8_t *data, uint16_t len, int & sendexBufferPosition)
+{
+    LOGDEBUG2(F("> sendDataEx:"), sock, len);
+
+    uint16_t lenReamining = len;
+
+    while (lenReamining > 0) {
+        if (sendexBufferPosition == 0) {
+            if (!beginPacket(sock)){
+                return false;
+            }
+        }
+
+        uint16_t lenSend = min(lenReamining, SENDEX_BUFFER_LENGTH - (uint16_t)sendexBufferPosition);
+        lenReamining -= lenSend;
+        sendexBufferPosition += lenSend;
+
+        LOGDEBUG1(F("> sendDataEx lenSend:"), lenSend);
+        LOGDEBUG1(F("> sendDataEx sendexBufferPosition:"), sendexBufferPosition);
+
+        espSerial->write(data, lenSend);
+
+        if (sendexBufferPosition >= SENDEX_BUFFER_LENGTH) {
+            if (!endPacket(sendexBufferPosition)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+// Overridden sendData method for __FlashStringHelper strings
+bool EspDrv::sendDataEx(uint8_t sock, const __FlashStringHelper *data, uint16_t len, int & sendexBufferPosition, bool appendCrLf)
+{
+    LOGDEBUG2(F("> sendDataEx:"), sock, len);
+
+    uint16_t lenReamining = len;
+
+    PGM_P p = reinterpret_cast<PGM_P>(data);
+    while (lenReamining > 0) {
+        if (sendexBufferPosition == 0) {
+            if (!beginPacket(sock)){
+                return false;
+            }
+        }
+
+        uint16_t lenSend = min(lenReamining, SENDEX_BUFFER_LENGTH - (uint16_t)sendexBufferPosition);
+        lenReamining -= lenSend;
+        sendexBufferPosition += lenSend;
+
+        LOGDEBUG1(F("> sendDataEx lenSend:"), lenSend);
+        LOGDEBUG1(F("> sendDataEx sendexBufferPosition:"), sendexBufferPosition);
+
+        for (uint16_t i = 0; i<lenSend; i++)
+        {
+            unsigned char c = pgm_read_byte(p++);
+            espSerial->write(c);
+        }
+
+        if (sendexBufferPosition >= SENDEX_BUFFER_LENGTH) {
+            if (!endPacket(sendexBufferPosition)) {
+                return false;
+            }
+        }
+    }
+
+    if (appendCrLf) {
+        return sendDataEx(sock, F("\r\n"), 2, sendexBufferPosition, false);
+    }
+
+    return true;
+}
+
+bool EspDrv::beginPacket(uint8_t sock)
+{
+    LOGDEBUG1(F("> beginPacket:"), sock);
+
+    char cmdBuf[25];
+    sprintf_P(cmdBuf, PSTR("AT+CIPSENDEX=%d,%u"), sock, SENDEX_BUFFER_LENGTH);
+    espSerial->println(cmdBuf);
+
+    int idx = readUntil(2000, (char *)">", false);
+    if(idx!=NUMESPTAGS)
+    {
+        LOGERROR(F("Data packet begin error (1)"));
+        return false;
+    }
+    return true;
+}
+
+bool EspDrv::endPacket(int & sendexBufferPosition)
+{
+    LOGDEBUG1(F("> endPacket:"), sendexBufferPosition);
+    if (sendexBufferPosition < SENDEX_BUFFER_LENGTH) {
+        espSerial->print('\\');
+        espSerial->print('0');
+        LOGDEBUG(F("> endPacket premature end"));
+    }
+
+    sendexBufferPosition = 0;
+
+    int idx = readUntil(3000);
+    if(idx!=TAG_SENDOK)
+    {
+        LOGERROR(F("Data packet end error (2)"));
+        return false;
+    }
+
+    return true;
+}
+
+// Overridden sendData method for __FlashStringHelper strings
 bool EspDrv::sendData(uint8_t sock, const __FlashStringHelper *data, uint16_t len, bool appendCrLf)
 {
 	LOGDEBUG2(F("> sendData:"), sock, len);
@@ -1104,9 +1217,12 @@ int EspDrv::readUntil(unsigned int timeout, const char* tag, bool findTags)
 			}
 			if(findTags)
 			{
+			    char buffer[12] = {0};
 				for(byte i=0; i<NUMESPTAGS; i++)
 				{
-					if (ringBuf.endsWith(ESPTAGS[i]))
+				    strcpy_P(buffer, (char*) pgm_read_word(&(ESPTAGS[i])));
+
+					if (ringBuf.endsWith(buffer))
 					{
 						ret = i;
 						break;
