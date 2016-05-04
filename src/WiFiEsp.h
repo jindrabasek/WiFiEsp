@@ -19,11 +19,11 @@ along with The Arduino WiFiEsp library.  If not, see
 #ifndef WiFiEsp_h
 #define WiFiEsp_h
 
-#include <HardwareSerial.h>
 #include <IPAddress.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <utility/EspDrv.h>
+#include <utility/SerialHolder.h>
 
 
 class WiFiEspClass
@@ -42,7 +42,7 @@ public:
 	*
 	* param espSerial: the serial interface (HW or SW) used to communicate with the ESP module
 	*/
-	static void init(HardwareSerial *espSerial, unsigned long baudRate,
+	static void init(SerialHolder *espSerial, unsigned long baudRate,
 	                 int8_t resetPin = -1, unsigned long originalBaudRate = EspDrv::DEFAULT_ORIGINAL_BAUD_RATE);
 
 

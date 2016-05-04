@@ -19,14 +19,13 @@ along with The Arduino WiFiEsp library.  If not, see
 #ifndef EspDrv_h
 #define EspDrv_h
 
-#include "Stream.h"
-#include "IPAddress.h"
-
-
-#include "RingBuffer.h"
-
-#include <HardwareSerial.h>
+#include <IPAddress.h>
+#include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
+#include <utility/RingBuffer.h>
+#include <utility/SerialHolder.h>
+#include <WString.h>
 
 
 
@@ -125,7 +124,7 @@ public:
 	static const unsigned long DEFAULT_ORIGINAL_BAUD_RATE = 115200;
 	static const int SENDEX_BUFFER_LENGTH = 2048;
 
-    static void wifiDriverInit(HardwareSerial *espSerial, unsigned long baudRate,
+    static void wifiDriverInit(SerialHolder *espSerial, unsigned long baudRate,
                                int8_t resetPin = -1, unsigned long originalBaudRate = DEFAULT_ORIGINAL_BAUD_RATE);
 
 
@@ -301,7 +300,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 
 private:
-	static HardwareSerial *espSerial;
+	static SerialHolder *espSerial;
 
 	static int8_t resetPin;
 	static long _bufPos;

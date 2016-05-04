@@ -19,7 +19,7 @@ along with The Arduino WiFiEsp library.  If not, see
 #ifndef EspDebug_H
 #define EspDebug_H
 
-#include <stdio.h>
+#include <HardwareSerial.h>
 
 // Change _ESPLOGLEVEL_ to set tracing and logging verbosity
 // 0: DISABLED: no logging

@@ -16,15 +16,14 @@ along with The Arduino WiFiEsp library.  If not, see
 <http://www.gnu.org/licenses/>.
 --------------------------------------------------------------------*/
 
-#include <HardwareSerial.h>
 #include <IPAddress.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include <utility/debug.h>
 #include <utility/EspDrv.h>
+#include <utility/SerialHolder.h>
 #include <WiFiEsp.h>
-#include <WString.h>
 
 
 int16_t 	WiFiEspClass::_state[MAX_SOCK_NUM] = { NA_STATE, NA_STATE, NA_STATE, NA_STATE };
@@ -39,7 +38,7 @@ WiFiEspClass::WiFiEspClass()
 
 }
 
-void WiFiEspClass::init(HardwareSerial *espSerial, unsigned long baudRate, int8_t resetPin,  unsigned long originalBaudRate)
+void WiFiEspClass::init(SerialHolder *espSerial, unsigned long baudRate, int8_t resetPin,  unsigned long originalBaudRate)
 {
     LOGINFO(F("Initializing ESP module"));
 	EspDrv::wifiDriverInit(espSerial, baudRate, resetPin, originalBaudRate);
