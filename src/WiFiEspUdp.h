@@ -20,6 +20,7 @@ along with The Arduino WiFiEsp library.  If not, see
 #define WiFiEspUdp_h
 
 #include <Udp.h>
+#include "utility/EspDrv.h"
 
 #define UDP_TX_PACKET_MAX_SIZE 24
 
@@ -28,6 +29,9 @@ private:
   uint8_t _sock;  // socket ID for Wiz5100
   uint16_t _port = 0; // local port to listen on
   
+
+  uint16_t _remoteSendingPort = 0;
+  uint8_t  _remoteIp[WL_IPV4_LENGTH] = {0};
   
   uint16_t _remotePort = 0;
   char _remoteHost[30];

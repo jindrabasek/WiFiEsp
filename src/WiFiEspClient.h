@@ -24,7 +24,7 @@ along with The Arduino WiFiEsp library.  If not, see
 #include "Print.h"
 #include "Client.h"
 #include "IPAddress.h"
-
+#include "utility/EspDrv.h"
 
 
 class WiFiEspClient : public Client
@@ -32,6 +32,7 @@ class WiFiEspClient : public Client
 public:
   WiFiEspClient();
   WiFiEspClient(uint8_t sock);
+  WiFiEspClient(uint8_t sock, uint16_t _remotePort, uint8_t * _remoteIp);
   virtual ~WiFiEspClient();
   
   
@@ -130,6 +131,7 @@ public:
   * Returns the remote IP address.
   */
   IPAddress remoteIP();
+  uint16_t remotePort();
 
   void setUseSsl(bool useSsl) {
     this->useSsl = useSsl;
@@ -145,7 +147,9 @@ private:
   uint8_t _sock;     // connection id
   // -1 means do not use cipsendex
   int sendexBufferPosition = -1;
-  bool useSsl;
+  bool useSsl = false;
+  uint16_t _remotePort;
+  uint8_t  _remoteIp[WL_IPV4_LENGTH] = {0};
 
   uint8_t getFirstSocket();
   int connect(const char* host, uint16_t port, uint8_t protMode);

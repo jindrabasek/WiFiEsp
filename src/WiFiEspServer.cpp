@@ -48,12 +48,13 @@ WiFiEspClient WiFiEspServer::available(byte* status)
 {
 	// TODO the original method seems to handle automatic server restart
 
-	int bytes = EspDrv::availData(0);
+    uint16_t _remotePort = 0;
+    uint8_t  _remoteIp[WL_IPV4_LENGTH] = {0};
+	int bytes = EspDrv::availData(0, &_remotePort, _remoteIp);
 	if (bytes>0)
 	{
 		LOGINFO1(F("New client"), EspDrv::_connId);
-		WiFiEspClient client(EspDrv::_connId);
-		return client;
+		return WiFiEspClient(EspDrv::_connId, _remotePort, _remoteIp);
 	}
 
     return WiFiEspClient(255);

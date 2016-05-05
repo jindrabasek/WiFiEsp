@@ -286,13 +286,10 @@ public:
     static bool endPacket(int & sendexBufferPosition);
 
 	static bool sendDataUdp(uint8_t sock, const char* host, uint16_t port, const uint8_t *data, uint16_t len);
-    static uint16_t availData(uint8_t connId);
+    static uint16_t availData(uint8_t connId, uint16_t * _remotePort, uint8_t * _remoteIp);
 
 
 	static bool ping(const char *host);
-
-    static void getRemoteIpAddress(IPAddress& ip);
-    static uint16_t getRemotePort();
 
     static void flushReceiveBuffer();
 
@@ -305,10 +302,6 @@ private:
 	static int8_t resetPin;
 	static long _bufPos;
 	static uint8_t _connId;
-
-	static uint16_t _remotePort;
-	static uint8_t  _remoteIp[WL_IPV4_LENGTH];
-
 
 	// firmware version string
 	static char 	fwVersion[WL_FW_VER_LENGTH];

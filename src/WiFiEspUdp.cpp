@@ -53,7 +53,7 @@ int WiFiEspUDP::available()
 {
 	 if (_sock != NO_SOCKET_AVAIL)
 	 {
-		int bytes = EspDrv::availData(_sock);
+		int bytes = EspDrv::availData(_sock, &_remoteSendingPort, _remoteIp);
 		if (bytes>0)
 		{
 			return bytes;
@@ -137,11 +137,11 @@ int WiFiEspUDP::read()
 	return b;
 }
 
-int WiFiEspUDP::read(uint8_t* buf, size_t size)
+int WiFiEspUDP::read(unsigned char* buf, size_t size)
 {
 	if (!available())
 		return -1;
-	return EspDrv::getDataBuf(_sock, buf, size);
+	return EspDrv::getDataBuf(_sock, (uint8_t *)buf, size);
 }
 
 int WiFiEspUDP::peek()
@@ -162,14 +162,12 @@ void WiFiEspUDP::flush()
 
 IPAddress  WiFiEspUDP::remoteIP()
 {
-	IPAddress ret;
-	EspDrv::getRemoteIpAddress(ret);
-	return ret;
+	return IPAddress(_remoteIp);;
 }
 
-uint16_t  WiFiEspUDP::remotePort()
+uint16_t WiFiEspUDP::remotePort()
 {
-	return EspDrv::getRemotePort();
+	return _remotePort;
 }
 
 

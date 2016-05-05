@@ -26,12 +26,17 @@ along with The Arduino WiFiEsp library.  If not, see
 #include "utility/debug.h"
 
 
-WiFiEspClient::WiFiEspClient() : WiFiEspClient(255)
+WiFiEspClient::WiFiEspClient() : _sock(255), _remotePort(0)
 {
 }
 
-WiFiEspClient::WiFiEspClient(uint8_t sock) : _sock(sock), useSsl(false)
+WiFiEspClient::WiFiEspClient(uint8_t sock) : _sock(sock), _remotePort(0)
 {
+}
+
+WiFiEspClient::WiFiEspClient(uint8_t sock, uint16_t _remotePort, uint8_t * _remoteIp) : _sock(sock), _remotePort(_remotePort)
+{
+    memcpy(this->_remoteIp, _remoteIp, WL_IPV4_LENGTH*sizeof(uint8_t));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -144,7 +149,7 @@ int WiFiEspClient::available()
 {
 	if (_sock != 255)
 	{
-		int bytes = EspDrv::availData(_sock);
+		int bytes = EspDrv::availData(_sock, &_remotePort, _remoteIp);
 		if (bytes>0)
 		{
 			return bytes;
@@ -244,7 +249,7 @@ uint8_t WiFiEspClient::status()
 		return CLOSED;
 	}
 
-	if (EspDrv::availData(_sock))
+	if (EspDrv::availData(_sock, &_remotePort, _remoteIp))
 	{
 		return ESTABLISHED;
 	}
@@ -262,9 +267,12 @@ uint8_t WiFiEspClient::status()
 
 IPAddress WiFiEspClient::remoteIP()
 {
-	IPAddress ret;
-	EspDrv::getRemoteIpAddress(ret);
-	return ret;
+	return IPAddress(_remoteIp);
+}
+
+uint16_t WiFiEspClient::remotePort()
+{
+    return _remotePort;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

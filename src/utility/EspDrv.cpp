@@ -25,15 +25,15 @@ along with The Arduino WiFiEsp library.  If not, see
 
 #define NUMESPTAGS 5
 
-const char TAG1[] PROGMEM = "\r\nOK\r\n";
-const char TAG2[] PROGMEM = "\r\nERROR\r\n";
-const char TAG3[] PROGMEM = "\r\nFAIL\r\n";
-const char TAG4[] PROGMEM = "\r\nSEND OK\r\n";
-const char TAG5[] PROGMEM = " CONNECT\r\n";
+static const char TAG1[] PROGMEM = "\r\nOK\r\n";
+static const char TAG2[] PROGMEM = "\r\nERROR\r\n";
+static const char TAG3[] PROGMEM = "\r\nFAIL\r\n";
+static const char TAG4[] PROGMEM = "\r\nSEND OK\r\n";
+static const char TAG5[] PROGMEM = " CONNECT\r\n";
 
-const char PATH_FORMAT[] PROGMEM = "/asset/%s/state";
+static const char* const ESPTAGS[] PROGMEM = { TAG1, TAG2, TAG3, TAG4, TAG5, };
 
-const char* const ESPTAGS[] PROGMEM = { TAG1, TAG2, TAG3, TAG4, TAG5, };
+static const char CWLAP_EXPECT[] PROGMEM = "+CWLAP:(";
 
 typedef enum
 {
@@ -63,10 +63,6 @@ char EspDrv::fwVersion[] = {0};
 
 long EspDrv::_bufPos=0;
 uint8_t EspDrv::_connId=0;
-
-uint16_t EspDrv::_remotePort  =0;
-uint8_t EspDrv::_remoteIp[] = {0};
-
 
 void EspDrv::wifiDriverInit(SerialHolder *espSerial, unsigned long baudRate, int8_t resetPin, unsigned long originalBaudRate)
 {
@@ -502,7 +498,9 @@ uint8_t EspDrv::getScanNetworks()
 	
 	(*espSerial)->println(F("AT+CWLAP"));
 	
-	idx = readUntil(10000, "+CWLAP:(");
+    char cwlapExpect[sizeof(CWLAP_EXPECT)];
+    strcpy_P(cwlapExpect, CWLAP_EXPECT);
+	idx = readUntil(10000, cwlapExpect);
 	
 	while (idx == NUMESPTAGS)
 	{
@@ -522,7 +520,9 @@ uint8_t EspDrv::getScanNetworks()
 		
 		_networkRssi[ssidListNum] = (*espSerial)->parseInt();
 		
-		idx = readUntil(1000, "+CWLAP:(");
+		char cwlapExpect[sizeof(CWLAP_EXPECT)];
+		strcpy_P(cwlapExpect, CWLAP_EXPECT);
+		idx = readUntil(1000, cwlapExpect);
 
 		if(ssidListNum==WL_NETWORKS_LIST_MAXNUM-1)
 			break;
@@ -687,7 +687,7 @@ uint8_t EspDrv::getServerState(uint8_t sock)
 
 
 
-uint16_t EspDrv::availData(uint8_t connId)
+uint16_t EspDrv::availData(uint8_t connId, uint16_t * _remotePort, uint8_t * _remoteIp)
 {
     //LOGDEBUG1(F("Buffer poss availData"), _bufPos);
 
@@ -718,7 +718,7 @@ uint16_t EspDrv::availData(uint8_t connId)
         _remoteIp[3] = (*espSerial)->parseInt();
         (*espSerial)->read();                  // "
         (*espSerial)->read();                  // ,
-        _remotePort = (*espSerial)->parseInt();     // <remote port>
+        *_remotePort = (*espSerial)->parseInt();     // <remote port>
 
         (*espSerial)->read();                  // :
 
@@ -762,28 +762,30 @@ bool EspDrv::getData(uint8_t connId, uint8_t *data, bool peek, bool* connClose)
 				// after the data packet a ",CLOSED" string may be received
 				// this means that the socket is now closed
 
-				delay(5);
+                unsigned long start = millis();
+                while ((millis() - start < 5)) {
+                    if ((*espSerial)->available())
+                    {
+                        //LOGDEBUG(".2");
+                        //LOGDEBUG((*espSerial)->peek());
 
-				if ((*espSerial)->available())
-				{
-					//LOGDEBUG(".2");
-					//LOGDEBUG((*espSerial)->peek());
+                        // 48 = '0'
+                        if ((*espSerial)->peek()==48+connId)
+                        {
+                            int idx = readUntil(1000, ",CLOSED\r\n", false);
+                            if(idx!=NUMESPTAGS)
+                            {
+                                LOGERROR(F("Tag CLOSED not found"));
+                            }
 
-					// 48 = '0'
-					if ((*espSerial)->peek()==48+connId)
-					{
-						int idx = readUntil(1000, ",CLOSED\r\n", false);
-						if(idx!=NUMESPTAGS)
-						{
-							LOGERROR(F("Tag CLOSED not found"));
-						}
+                            LOGDEBUG();
+                            LOGDEBUG(F("Connection closed"));
 
-						LOGDEBUG();
-						LOGDEBUG(F("Connection closed"));
-
-						*connClose=true;
-					}
-				}
+                            *connClose=true;
+                        }
+                        break;
+                    }
+                }
 			}
 
 			return true;
@@ -1036,18 +1038,6 @@ bool EspDrv::sendDataUdp(uint8_t sock, const char* host, uint16_t port, const ui
 	}
 
     return true;
-}
-
-
-
-void EspDrv::getRemoteIpAddress(IPAddress& ip)
-{
-	ip = _remoteIp;
-}
-
-uint16_t EspDrv::getRemotePort()
-{
-	return _remotePort;
 }
 
 
