@@ -24,10 +24,10 @@ along with The Arduino WiFiEsp library.  If not, see
 #include <string.h>
 
 template <uint8_t size>
-class RingBuffer
+class EspRingBuffer
 {
 public:
-	RingBuffer()
+	EspRingBuffer()
 	{
 	    ringBufEnd = &ringBuf[size];
 	    reset();
@@ -101,6 +101,10 @@ public:
 
 	    // terminate output string
 	    //destination[len]=0;
+	}
+
+	int getLength() {
+	   return ringBufP - ringBuf;
 	}
 
 private:

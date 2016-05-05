@@ -23,7 +23,7 @@ along with The Arduino WiFiEsp library.  If not, see
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <utility/RingBuffer.h>
+#include <utility/EspRingBuffer.h>
 #include <utility/SerialHolder.h>
 #include <WString.h>
 
@@ -326,7 +326,7 @@ private:
 
 	static const uint8_t RING_BUFFER_SIZE = 32;
 	// the ring buffer is used to search the tags in the stream
-	static RingBuffer<RING_BUFFER_SIZE> ringBuf;
+	static EspRingBuffer<RING_BUFFER_SIZE> ringBuf;
 
 
 	//static int sendCmd(const char* cmd, int timeout=1000);

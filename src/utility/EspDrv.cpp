@@ -48,7 +48,7 @@ typedef enum
 SerialHolder *EspDrv::espSerial = NULL;
 int8_t EspDrv::resetPin = -1;
 
-RingBuffer<EspDrv::RING_BUFFER_SIZE> EspDrv::ringBuf;
+EspRingBuffer<EspDrv::RING_BUFFER_SIZE> EspDrv::ringBuf;
 
 // Array of data to cache the information related to the networks discovered
 char 	EspDrv::_networkSsid[][WL_SSID_MAX_LENGTH] = {{"1"},{"2"},{"3"},{"4"},{"5"}};
@@ -1090,14 +1090,19 @@ bool EspDrv::sendCmdGet(const __FlashStringHelper* cmd, const char* startTag, co
 
 		if(idx==NUMESPTAGS)
 		{
-			// end tag found
-			// copy result to output buffer avoiding overflow
-			ringBuf.getStrN(outStr, strlen(endTag), outStrLen-1);
+		    int lenTag = strlen(endTag);
+		    if( ringBuf.getLength() - lenTag <= outStrLen ) {
+                // end tag found
+                // copy result to output buffer avoiding overflow
+                ringBuf.getStrN(outStr, lenTag, outStrLen-1);
 
-			// read the remaining part of the response
-			readUntil(3000);
+                // read the remaining part of the response
+                readUntil(3000);
 
-			ret = true;
+                ret = true;
+		    } else {
+		        LOGERROR(F("Buffer overflow in sendCmdGet"));
+		    }
 		}
 		else
 		{
@@ -1166,7 +1171,13 @@ int EspDrv::sendCmd(const __FlashStringHelper* cmd, int timeout, ...)
 
 	va_list args;
 	va_start (args, timeout);
+
+#if defined (__arm__) && defined (__SAM3X8E__)
+	vsnprintf (cmdBuf, CMD_BUFFER_SIZE, (char*)cmd, args);
+#else
 	vsnprintf_P (cmdBuf, CMD_BUFFER_SIZE, (char*)cmd, args);
+#endif
+
 	va_end (args);
 
 	espEmptyBuf();

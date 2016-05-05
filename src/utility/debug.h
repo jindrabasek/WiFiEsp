@@ -19,7 +19,13 @@ along with The Arduino WiFiEsp library.  If not, see
 #ifndef EspDebug_H
 #define EspDebug_H
 
+#if defined (__arm__) && defined (__SAM3X8E__) // Arduino Due compatible
+#include <variant.h>
+#else
 #include <HardwareSerial.h>
+#endif
+
+
 
 // Change _ESPLOGLEVEL_ to set tracing and logging verbosity
 // 0: DISABLED: no logging
