@@ -64,12 +64,20 @@ char EspDrv::fwVersion[] = {0};
 long EspDrv::_bufPos=0;
 uint8_t EspDrv::_connId=0;
 
+uint16_t EspDrv::yield_every_n_chars = 0;
+
+#ifndef YIELD_EVERY_N_MILLIS
+#define YIELD_EVERY_N_MILLIS 4
+#endif
+
+
 void EspDrv::wifiDriverInit(SerialHolder *espSerial, unsigned long baudRate, int8_t resetPin, unsigned long originalBaudRate)
 {
 	LOGDEBUG(F("> wifiDriverInit"));
 
 	EspDrv::espSerial = espSerial;
 	EspDrv::resetPin = resetPin;
+	EspDrv::yield_every_n_chars = baudRate * ((float)YIELD_EVERY_N_MILLIS/1000);
 
 	espSerial->end();
 	espSerial->begin(baudRate);
@@ -859,7 +867,7 @@ bool EspDrv::sendData(uint8_t sock, const uint8_t *data, uint16_t len)
     return true;
 }
 
-bool EspDrv::sendDataEx(uint8_t sock, const uint8_t *data, uint16_t len, int & sendexBufferPosition)
+bool EspDrv::sendDataEx(uint8_t sock, const uint8_t *data, uint16_t len, int & sendexBufferPosition, uint16_t* charsToYield)
 {
     LOGDEBUG2(F("> sendDataEx:"), sock, len);
 
@@ -879,7 +887,18 @@ bool EspDrv::sendDataEx(uint8_t sock, const uint8_t *data, uint16_t len, int & s
         LOGDEBUG1(F("> sendDataEx lenSend:"), lenSend);
         LOGDEBUG1(F("> sendDataEx sendexBufferPosition:"), sendexBufferPosition);
 
-        (*espSerial)->write(data, lenSend);
+
+        while (lenSend--) {
+           if (!(*espSerial)->write(*data++)) {
+               return false;
+           }
+           if (!(*charsToYield)--){
+               // give time to other threads here
+               LOGDEBUG(F("yield sendDataEx"));
+               delay(3);
+               (*charsToYield) = yield_every_n_chars;
+           }
+        }
 
         if (sendexBufferPosition >= SENDEX_BUFFER_LENGTH) {
             if (!endPacket(sendexBufferPosition)) {
@@ -892,7 +911,7 @@ bool EspDrv::sendDataEx(uint8_t sock, const uint8_t *data, uint16_t len, int & s
 }
 
 // Overridden sendData method for __FlashStringHelper strings
-bool EspDrv::sendDataEx(uint8_t sock, const __FlashStringHelper *data, uint16_t len, int & sendexBufferPosition, bool appendCrLf)
+bool EspDrv::sendDataEx(uint8_t sock, const __FlashStringHelper *data, uint16_t len, int & sendexBufferPosition, uint16_t* charsToYield, bool appendCrLf)
 {
     LOGDEBUG2(F("> sendDataEx:"), sock, len);
 
@@ -913,10 +932,17 @@ bool EspDrv::sendDataEx(uint8_t sock, const __FlashStringHelper *data, uint16_t 
         LOGDEBUG1(F("> sendDataEx lenSend:"), lenSend);
         LOGDEBUG1(F("> sendDataEx sendexBufferPosition:"), sendexBufferPosition);
 
-        for (uint16_t i = 0; i<lenSend; i++)
-        {
+        while (lenSend--) {
             unsigned char c = pgm_read_byte(p++);
-            (*espSerial)->write(c);
+            if (!(*espSerial)->write(c)){
+                return false;
+            }
+            if (!(*charsToYield)--){
+                // give time to other threads here
+                LOGDEBUG(F("yield sendDataEx flash str"));
+                delay(3);
+                (*charsToYield) = yield_every_n_chars;
+            }
         }
 
         if (sendexBufferPosition >= SENDEX_BUFFER_LENGTH) {
@@ -927,7 +953,7 @@ bool EspDrv::sendDataEx(uint8_t sock, const __FlashStringHelper *data, uint16_t 
     }
 
     if (appendCrLf) {
-        return sendDataEx(sock, F("\r\n"), 2, sendexBufferPosition, false);
+        return sendDataEx(sock, F("\r\n"), 2, sendexBufferPosition, charsToYield, false);
     }
 
     return true;
@@ -954,8 +980,8 @@ bool EspDrv::endPacket(int & sendexBufferPosition)
 {
     LOGDEBUG1(F("> endPacket:"), sendexBufferPosition);
     if (sendexBufferPosition < SENDEX_BUFFER_LENGTH) {
-        (*espSerial)->print('\\');
-        (*espSerial)->print('0');
+        (*espSerial)->write('\\');
+        (*espSerial)->write('0');
         LOGDEBUG(F("> endPacket premature end"));
     }
 

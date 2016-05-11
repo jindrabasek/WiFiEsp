@@ -151,6 +151,8 @@ private:
   uint16_t _remotePort;
   uint8_t  _remoteIp[WL_IPV4_LENGTH] = {0};
 
+  uint16_t charsToYield = EspDrv::yield_every_n_chars;
+
   uint8_t getFirstSocket();
   int connect(const char* host, uint16_t port, uint8_t protMode);
   

@@ -128,7 +128,7 @@ size_t WiFiEspClient::write(const uint8_t *buf, size_t size)
 	if (sendexBufferPosition < 0) {
 	    r = EspDrv::sendData(_sock, buf, size);
 	} else {
-	    r = EspDrv::sendDataEx(_sock, buf, size, sendexBufferPosition);
+	    r = EspDrv::sendDataEx(_sock, buf, size, sendexBufferPosition, &charsToYield);
 	}
 
 	if (!r)
@@ -306,7 +306,7 @@ size_t WiFiEspClient::printFSH(const __FlashStringHelper *ifsh, bool appendCrLf)
     if (sendexBufferPosition < 0) {
         r = EspDrv::sendData(_sock, ifsh, size, appendCrLf);
     } else {
-        r = EspDrv::sendDataEx(_sock, ifsh, size, sendexBufferPosition, appendCrLf);
+        r = EspDrv::sendDataEx(_sock, ifsh, size, sendexBufferPosition, &charsToYield, appendCrLf);
     }
 
 	if (!r)

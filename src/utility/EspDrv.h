@@ -280,8 +280,8 @@ public:
     static int getDataBuf(uint8_t connId, uint8_t *buf, uint16_t bufSize);
     static bool sendData(uint8_t sock, const uint8_t *data, uint16_t len);
     static bool sendData(uint8_t sock, const __FlashStringHelper *data, uint16_t len, bool appendCrLf=false);
-    static bool sendDataEx(uint8_t sock, const uint8_t *data, uint16_t len, int & sendexBufferPosition);
-    static bool sendDataEx(uint8_t sock, const __FlashStringHelper *data, uint16_t len, int & sendexBufferPosition, bool appendCrLf=false);
+    static bool sendDataEx(uint8_t sock, const uint8_t *data, uint16_t len, int & sendexBufferPosition, uint16_t* charsToYield);
+    static bool sendDataEx(uint8_t sock, const __FlashStringHelper *data, uint16_t len, int & sendexBufferPosition, uint16_t* charsToYield, bool appendCrLf=false);
     static bool beginPacket(uint8_t sock);
     static bool endPacket(int & sendexBufferPosition);
 
@@ -320,6 +320,8 @@ private:
 	static const uint8_t RING_BUFFER_SIZE = 32;
 	// the ring buffer is used to search the tags in the stream
 	static EspRingBuffer<RING_BUFFER_SIZE> ringBuf;
+
+	static uint16_t yield_every_n_chars;
 
 
 	//static int sendCmd(const char* cmd, int timeout=1000);
