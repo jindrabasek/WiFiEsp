@@ -24,6 +24,12 @@ along with The Arduino WiFiEsp library.  If not, see
 
 #define UDP_TX_PACKET_MAX_SIZE 24
 
+// Do not define virtual destructor on purpose - class
+// and its children is not expected to need destructors,
+// it saves a lot of SRAM otherwise occupied by VTABLE
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
+
 class WiFiEspUDP : public UDP {
 private:
   uint8_t _sock;  // socket ID for Wiz5100
@@ -39,7 +45,6 @@ private:
 
 public:
   WiFiEspUDP();  // Constructor
-  virtual ~WiFiEspUDP();
 
   virtual uint8_t begin(uint16_t);	// initialize, start listening on specified port. Returns 1 if successful, 0 if there are no sockets available to use
   virtual void stop();  // Finish with the UDP socket
@@ -100,5 +105,7 @@ public:
 
   friend class WiFiEspServer;
 };
+
+#pragma GCC diagnostic pop
 
 #endif
