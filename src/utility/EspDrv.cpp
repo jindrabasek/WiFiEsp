@@ -1269,14 +1269,13 @@ int EspDrv::readUntil(unsigned int timeout, const char* tag, bool findTags)
 					}
 				}
 			}
-		} else {
-		    yield();
 		}
+		yield();
     }
 
 	if (millis() - start >= timeout)
 	{
-		LOGWARN(F(">>> TIMEOUT >>>"));
+		LOGWARN1(F(">>> TIMEOUT >>>"), tag);
 	}
 
     return ret;
