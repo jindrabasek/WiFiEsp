@@ -1269,8 +1269,46 @@ int EspDrv::readUntil(unsigned int timeout, const char* tag, bool findTags)
 					}
 				}
 			}
+		} else {
+		    yield();
+
+		    /*
+		     * Big problems with responsiveness and threads switching make methods
+		     * timedRead and timedPeek in Arduino Core file Stream.cpp
+		     * There are one second long timeouts in these methods!
+		     * It is necessary to add yield manually there every time you reinstall
+		     * Arduino framework
+		     *
+		     *
+		     * // private method to read stream with timeout
+                int Stream::timedRead()
+                {
+                  int c;
+                  _startMillis = millis();
+                  do {
+                    c = read();
+                    if (c >= 0) return c;
+                    yield();
+                  } while(millis() - _startMillis < _timeout);
+                  return -1;     // -1 indicates timeout
+                }
+
+                // private method to peek stream with timeout
+                int Stream::timedPeek()
+                {
+                  int c;
+                  _startMillis = millis();
+                  do {
+                    c = peek();
+                    if (c >= 0) return c;
+                    yield();
+                  } while(millis() - _startMillis < _timeout);
+                  return -1;     // -1 indicates timeout
+                }
+		     *
+		     *
+		     */
 		}
-		yield();
     }
 
 	if (millis() - start >= timeout)
