@@ -190,7 +190,7 @@ uint8_t WiFiEspClass::status()
 void WiFiEspClass::reset(void)
 {
 	EspDrv::reset();
-	for (int i = 0; i < MAX_SOCK_NUM; i++)
+	for (uint8_t i = 0; i < MAX_SOCK_NUM; i++)
     {
 	    WiFiEspClass::_state[i] = NA_STATE;
     }
@@ -200,11 +200,12 @@ void WiFiEspClass::reset(void)
 
 bool WiFiEspClass::hardReset(void)
 {
-    return EspDrv::hardReset();
-    for (int i = 0; i < MAX_SOCK_NUM; i++)
+    bool result = EspDrv::hardReset();
+    for (uint8_t i = 0; i < MAX_SOCK_NUM; i++)
     {
         WiFiEspClass::_state[i] = NA_STATE;
     }
+    return result;
 }
 
 

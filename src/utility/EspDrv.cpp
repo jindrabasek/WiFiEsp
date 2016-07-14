@@ -86,7 +86,7 @@ void EspDrv::wifiDriverInit(SerialHolder *espSerial, unsigned long baudRate, int
 
 	bool initOK = false;
 	
-	for(int i=0; i<5; i++)
+	for (uint8_t i=0; i<5; i++)
 	{
 		if (sendCmd(F("AT")) == TAG_OK)
 		{
@@ -155,6 +155,10 @@ bool EspDrv::hardReset() {
   delay(5000);
 
   flushReceiveBuffer();
+
+  while (espSerial->getSerial()->available()) {
+      espSerial->getSerial()->read();
+  }
   _connId = 0;
 
   return true;
@@ -202,7 +206,7 @@ bool EspDrv::wifiConnect(const char* ssid, const char *passphrase)
 	// any special characters (',', '"' and '/')
 
     // connect to access point, use CUR mode to avoid connection at boot
-	int ret = sendCmd(F("AT+CWJAP_CUR=\"%s\",\"%s\""), 20000, ssid, passphrase);
+	int ret = sendCmd(F("AT+CWJAP_CUR=\"%s\",\"%s\""), 30000, ssid, passphrase);
 
 	if (ret==TAG_OK)
 	{

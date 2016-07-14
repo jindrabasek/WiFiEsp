@@ -281,7 +281,7 @@ uint16_t WiFiEspClient::remotePort()
 
 uint8_t WiFiEspClient::getFirstSocket()
 {
-    for (int i = 0; i < MAX_SOCK_NUM; i++)
+    for (uint8_t i = 0; i < MAX_SOCK_NUM; i++)
 	{
       if (WiFiEspClass::_state[i] == NA_STATE)
       {
