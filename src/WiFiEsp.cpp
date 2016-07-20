@@ -154,25 +154,11 @@ int32_t WiFiEspClass::RSSI()
     return EspDrv::getCurrentRSSI();
 }
 
-
-int8_t WiFiEspClass::scanNetworks()
+int8_t WiFiEspClass::scanNetworks(char networkSsid[WL_NETWORKS_LIST_MAXNUM][WL_SSID_MAX_LENGTH],
+                                  int32_t networkRssi[WL_NETWORKS_LIST_MAXNUM],
+                                  wl_enc_type networkEncr[WL_NETWORKS_LIST_MAXNUM])
 {
-	return EspDrv::getScanNetworks();
-}
-
-char* WiFiEspClass::SSID(uint8_t networkItem)
-{
-	return EspDrv::getSSIDNetoworks(networkItem);
-}
-
-int32_t WiFiEspClass::RSSI(uint8_t networkItem)
-{
-	return EspDrv::getRSSINetoworks(networkItem);
-}
-
-uint8_t WiFiEspClass::encryptionType(uint8_t networkItem)
-{
-    return EspDrv::getEncTypeNetowrks(networkItem);
+	return EspDrv::getScanNetworks(networkSsid, networkRssi, networkEncr);
 }
 
 

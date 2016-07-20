@@ -41,6 +41,7 @@ along with The Arduino WiFiEsp library.  If not, see
 #define LOGERROR(x)    if(_ESPLOGLEVEL_>0) { Serial.print(F("[WiFiEsp] ")); Serial.println(x); }
 #define LOGERROR1(x,y) if(_ESPLOGLEVEL_>0) { Serial.print(F("[WiFiEsp] ")); Serial.print(x); Serial.print(' '); Serial.println(y); }
 #define LOGWARN(x)     if(_ESPLOGLEVEL_>1) { Serial.print(F("[WiFiEsp] ")); Serial.println(x); }
+#define LOGWARN0(x)    if(_ESPLOGLEVEL_>1) { Serial.print(x); }
 #define LOGWARN1(x,y)  if(_ESPLOGLEVEL_>1) { Serial.print(F("[WiFiEsp] ")); Serial.print(x); Serial.print(' '); Serial.println(y); }
 #define LOGINFO(x)     if(_ESPLOGLEVEL_>2) { Serial.print(F("[WiFiEsp] ")); Serial.println(x); }
 #define LOGINFO1(x,y)  if(_ESPLOGLEVEL_>2) { Serial.print(F("[WiFiEsp] ")); Serial.print(x); Serial.print(' '); Serial.println(y); }

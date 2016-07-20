@@ -50,11 +50,6 @@ int8_t EspDrv::resetPin = -1;
 
 EspRingBuffer<EspDrv::RING_BUFFER_SIZE> EspDrv::ringBuf;
 
-// Array of data to cache the information related to the networks discovered
-char 	EspDrv::_networkSsid[][WL_SSID_MAX_LENGTH] = {{"1"},{"2"},{"3"},{"4"},{"5"}};
-int32_t EspDrv::_networkRssi[WL_NETWORKS_LIST_MAXNUM] = { 0 };
-uint8_t EspDrv::_networkEncr[WL_NETWORKS_LIST_MAXNUM] = { 0 };
-
 // Cached values of retrieved data
 char EspDrv::_ssid[] = {0};
 uint8_t EspDrv::_bssid[] = {0};
@@ -86,21 +81,15 @@ void EspDrv::wifiDriverInit(SerialHolder *espSerial, unsigned long baudRate, int
 
 	bool initOK = false;
 	
-	for (uint8_t i=0; i<5; i++)
-	{
-		if (sendCmd(F("AT")) == TAG_OK)
-		{
-			initOK=true;
-			break;
-		}
-		delay(1000);
-	}
+    if (sendCmd(F("AT")) == TAG_OK)
+    {
+        initOK=true;
+        delay(2000);
+    }
 
 	if (!initOK)
 	{
 		LOGERROR(F("Cannot initialize ESP module"));
-
-		delay(2000);
 
 		if (baudRate != originalBaudRate) {
 			espSerial->end();
@@ -113,17 +102,16 @@ void EspDrv::wifiDriverInit(SerialHolder *espSerial, unsigned long baudRate, int
 			} else {
 				sendCmd(F("AT+UART_DEF=%d,8,1,0,0"), 5000, baudRate);
 
-					espSerial->end();
-					espSerial->begin(baudRate);
+                espSerial->end();
+                espSerial->begin(baudRate);
 
-					delay(2000);
+                delay(2000);
 
-					if (sendCmd(F("AT")) != TAG_OK)
-					{
-						LOGERROR(F("Cannot initialize ESP module after baud rate change"));
-						delay(2000);
-						return;
-					}
+                if (sendCmd(F("AT")) != TAG_OK)
+                {
+                    LOGERROR(F("Cannot initialize ESP module after baud rate change"));
+                    return;
+                }
 			}
 		} else {
 			return;
@@ -169,7 +157,7 @@ void EspDrv::reset()
 	LOGDEBUG(F("> reset"));
 
 	sendCmd(F("AT+RST"));
-	delay(3000);
+	delay(4000);
 	espEmptyBuf(false);  // empty dirty characters from the buffer
 
 	// disable echo of commands
@@ -208,11 +196,11 @@ bool EspDrv::wifiConnect(const char* ssid, const char *passphrase)
     // connect to access point, use CUR mode to avoid connection at boot
 	int ret = sendCmd(F("AT+CWJAP_CUR=\"%s\",\"%s\""), 30000, ssid, passphrase);
 
-	if (ret==TAG_OK)
-	{
-		LOGINFO1(F("Connected to"), ssid);
-		return true;
-	}
+    if (ret==TAG_OK)
+    {
+        LOGINFO1(F("Connected to"), ssid);
+        return true;
+    }
 
 	LOGWARN1(F("Failed connecting to"), ssid);
 
@@ -510,7 +498,9 @@ int32_t EspDrv::getCurrentRSSI()
 }
 
 
-uint8_t EspDrv::getScanNetworks()
+uint8_t EspDrv::getScanNetworks(char networkSsid[WL_NETWORKS_LIST_MAXNUM][WL_SSID_MAX_LENGTH],
+                                int32_t networkRssi[WL_NETWORKS_LIST_MAXNUM],
+                                wl_enc_type networkEncr[WL_NETWORKS_LIST_MAXNUM])
 {
     uint8_t ssidListNum = 0;
     int idx;
@@ -524,11 +514,11 @@ uint8_t EspDrv::getScanNetworks()
 	
     char cwlapExpect[sizeof(CWLAP_EXPECT)];
     strcpy_P(cwlapExpect, CWLAP_EXPECT);
-	idx = readUntil(10000, cwlapExpect);
+	idx = readUntil(60000, cwlapExpect);
 	
 	while (idx == NUMESPTAGS)
 	{
-		_networkEncr[ssidListNum] = (*espSerial)->parseInt();
+		networkEncr[ssidListNum] = (wl_enc_type)(*espSerial)->parseInt();
 		
 		// discard , and " characters
 		readUntil(1000, "\"");
@@ -536,14 +526,14 @@ uint8_t EspDrv::getScanNetworks()
 		idx = readUntil(1000, "\"", false);
 		if(idx==NUMESPTAGS)
 		{
-			memset(_networkSsid[ssidListNum], 0, WL_SSID_MAX_LENGTH );
-			ringBuf.getStrN(_networkSsid[ssidListNum], 1, WL_SSID_MAX_LENGTH-1);
+			memset(networkSsid[ssidListNum], 0, WL_SSID_MAX_LENGTH );
+			ringBuf.getStrN(networkSsid[ssidListNum], 1, WL_SSID_MAX_LENGTH-1);
 		}
 		
 		// discard , character
 		readUntil(1000, ",");
 		
-		_networkRssi[ssidListNum] = (*espSerial)->parseInt();
+		networkRssi[ssidListNum] = (*espSerial)->parseInt();
 		
 		char cwlapExpect[sizeof(CWLAP_EXPECT)];
 		strcpy_P(cwlapExpect, CWLAP_EXPECT);
@@ -583,37 +573,11 @@ bool EspDrv::getGateway(IPAddress& gw)
 	char buf[20];
 	if (sendCmdGet(F("AT+CIPSTA?"), F("+CIPSTA:gateway:\""), F("\""), buf, sizeof(buf)))
 	{
-		gw.fromString (buf);
+		gw.fromString(buf);
 		return true;
 	}
 
 	return false;
-}
-
-char* EspDrv::getSSIDNetoworks(uint8_t networkItem)
-{
-	if (networkItem >= WL_NETWORKS_LIST_MAXNUM)
-		return NULL;
-
-	return _networkSsid[networkItem];
-}
-
-uint8_t EspDrv::getEncTypeNetowrks(uint8_t networkItem)
-{
-	if (networkItem >= WL_NETWORKS_LIST_MAXNUM) {
-		return 0;
-	}
-
-    return _networkEncr[networkItem];
-}
-
-int32_t EspDrv::getRSSINetoworks(uint8_t networkItem)
-{
-	if (networkItem >= WL_NETWORKS_LIST_MAXNUM) {
-		return 0;
-	}
-
-    return _networkRssi[networkItem];
 }
 
 char* EspDrv::getFwVersion()
@@ -1331,8 +1295,9 @@ void EspDrv::espEmptyBuf(bool warn)
 	while((*espSerial)->available() > 0)
     {
 		c = (*espSerial)->read();
-		if (i>0 and warn==true)
+		if (i>0 and warn==true) {
 			LOGDEBUG0(c);
+		}
 		i++;
 	}
 	if (i>0 and warn==true)

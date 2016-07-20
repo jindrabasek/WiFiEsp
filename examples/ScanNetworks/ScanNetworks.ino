@@ -61,8 +61,12 @@ void printMacAddress()
 
 void listNetworks()
 {
+  char networkSsid[WL_NETWORKS_LIST_MAXNUM][WL_SSID_MAX_LENGTH];
+  int32_t networkRssi[WL_NETWORKS_LIST_MAXNUM];
+  wl_enc_type networkEncr[WL_NETWORKS_LIST_MAXNUM];
+
   // scan for nearby networks
-  int numSsid = WiFi.scanNetworks();
+  int numSsid = WiFi.scanNetworks(networkSsid, networkRssi, networkEncr);
   if (numSsid == -1) {
     Serial.println("Couldn't get a wifi connection");
     while (true);
@@ -76,16 +80,16 @@ void listNetworks()
   for (int thisNet = 0; thisNet < numSsid; thisNet++) {
     Serial.print(thisNet);
     Serial.print(") ");
-    Serial.print(WiFi.SSID(thisNet));
+    Serial.print(networkSsid[thisNet]);
     Serial.print("\tSignal: ");
-    Serial.print(WiFi.RSSI(thisNet));
+    Serial.print(networkRssi[thisNet]);
     Serial.print(" dBm");
     Serial.print("\tEncryption: ");
-    printEncryptionType(WiFi.encryptionType(thisNet));
+    printEncryptionType(networkEncr[thisNet]);
   }
 }
 
-void printEncryptionType(int thisType) {
+void printEncryptionType(wl_enc_type thisType) {
   // read the encryption type and print out the name
   switch (thisType) {
     case ENC_TYPE_WEP:
