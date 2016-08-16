@@ -43,7 +43,8 @@ public:
 	* param espSerial: the serial interface (HW or SW) used to communicate with the ESP module
 	*/
 	static void init(SerialHolder *espSerial, unsigned long baudRate,
-	                 int8_t resetPin = -1, unsigned long originalBaudRate = EspDrv::DEFAULT_ORIGINAL_BAUD_RATE);
+	                 int8_t chpdPin = -1, int8_t resetPin = -1,
+	                 unsigned long originalBaudRate = EspDrv::DEFAULT_ORIGINAL_BAUD_RATE);
 
 
 	/**

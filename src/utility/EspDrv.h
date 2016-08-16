@@ -125,7 +125,8 @@ public:
 	static const int SENDEX_BUFFER_LENGTH = 2048;
 
     static void wifiDriverInit(SerialHolder *espSerial, unsigned long baudRate,
-                               int8_t resetPin = -1, unsigned long originalBaudRate = DEFAULT_ORIGINAL_BAUD_RATE);
+                               int8_t chpdPin = -1, int8_t resetPin = -1,
+                               unsigned long originalBaudRate = DEFAULT_ORIGINAL_BAUD_RATE);
 
 
     /* Start Wifi connection with passphrase
@@ -278,6 +279,7 @@ private:
 	static SerialHolder *espSerial;
 
 	static int8_t resetPin;
+    static int8_t chpdPin;
 	static long _bufPos;
 	static uint8_t _connId;
 

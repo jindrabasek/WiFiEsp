@@ -47,6 +47,7 @@ typedef enum
 
 SerialHolder *EspDrv::espSerial = NULL;
 int8_t EspDrv::resetPin = -1;
+int8_t EspDrv::chpdPin = -1;
 
 EspRingBuffer<EspDrv::RING_BUFFER_SIZE> EspDrv::ringBuf;
 
@@ -66,18 +67,26 @@ uint16_t EspDrv::yield_every_n_chars = 0;
 #endif
 
 
-void EspDrv::wifiDriverInit(SerialHolder *espSerial, unsigned long baudRate, int8_t resetPin, unsigned long originalBaudRate)
+void EspDrv::wifiDriverInit(SerialHolder *espSerial, unsigned long baudRate,
+                            int8_t chpdPin, int8_t resetPin, unsigned long originalBaudRate)
 {
 	LOGDEBUG(F("> wifiDriverInit"));
 
 	EspDrv::espSerial = espSerial;
 	EspDrv::resetPin = resetPin;
+    EspDrv::chpdPin = chpdPin;
 	EspDrv::yield_every_n_chars = baudRate * ((float)YIELD_EVERY_N_MILLIS/1000);
+
+	if (chpdPin >= 0) {
+	    // enable chip
+	    pinMode(chpdPin, OUTPUT);
+	    digitalWrite(chpdPin, HIGH);
+	    delay(5000); // wait for ESP to boot
+	}
 
 	espSerial->end();
 	espSerial->begin(baudRate);
 	delay(100);
-
 
 	bool initOK = false;
 	
@@ -128,7 +137,7 @@ void EspDrv::wifiDriverInit(SerialHolder *espSerial, unsigned long baudRate, int
 // It's generally safe-ish as the default Arduino pin state is INPUT (w/no
 // pullup) -- setting to LOW provides an open-drain for reset.
 bool EspDrv::hardReset() {
-  if (resetPin < 0) {
+  if (resetPin < 0 || chpdPin < 0) {
       return false;
   }
 
@@ -136,11 +145,17 @@ bool EspDrv::hardReset() {
       espSerial->end();
   }
 
-  digitalWrite(resetPin, LOW);
-  pinMode(resetPin, OUTPUT); // Open drain; reset -> GND
-  delay(20);                  // Hold a moment
-  pinMode(resetPin, INPUT);  // Back to high-impedance pin state
-  delay(5000);
+  if (chpdPin >= 0) {
+      // disable chip
+      pinMode(chpdPin, OUTPUT);
+      digitalWrite(chpdPin, LOW);
+  } else {
+      digitalWrite(resetPin, LOW);
+      pinMode(resetPin, OUTPUT); // Open drain; reset -> GND
+      delay(20);                  // Hold a moment
+      pinMode(resetPin, INPUT);  // Back to high-impedance pin state
+      delay(5000);
+  }
 
   flushReceiveBuffer();
 

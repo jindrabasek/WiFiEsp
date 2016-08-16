@@ -36,10 +36,12 @@ WiFiEspClass::WiFiEspClass()
 
 }
 
-void WiFiEspClass::init(SerialHolder *espSerial, unsigned long baudRate, int8_t resetPin,  unsigned long originalBaudRate)
+void WiFiEspClass::init(SerialHolder *espSerial, unsigned long baudRate,
+                        int8_t chpdPin, int8_t resetPin,  unsigned long originalBaudRate)
 {
     LOGINFO(F("Initializing ESP module"));
-	EspDrv::wifiDriverInit(espSerial, baudRate, resetPin, originalBaudRate);
+	EspDrv::wifiDriverInit(espSerial, baudRate, chpdPin,
+	                       resetPin, originalBaudRate);
 }
 
 
