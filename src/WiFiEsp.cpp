@@ -42,6 +42,11 @@ void WiFiEspClass::init(SerialHolder *espSerial, unsigned long baudRate,
     LOGINFO(F("Initializing ESP module"));
 	EspDrv::wifiDriverInit(espSerial, baudRate, chpdPin,
 	                       resetPin, originalBaudRate);
+
+    for (uint8_t i = 0; i < MAX_SOCK_NUM; i++)
+    {
+        WiFiEspClass::_state[i] = NA_STATE;
+    }
 }
 
 
