@@ -92,14 +92,14 @@ int WiFiEspClient::connect(const char* host, uint16_t port, uint8_t protMode)
 {
 	LOGINFO1(F("Connecting to"), host);
 
-	_sock = getFirstSocket();
+	_sock = WiFiEspClass::getFreeSocket();
 
     if (_sock != NO_SOCKET_AVAIL)
     {
     	if (!EspDrv::startClient(host, port, _sock, protMode))
 			return 0;
 
-    	WiFiEspClass::_state[_sock] = _sock;
+    	WiFiEspClass::allocateSocket(_sock);
     }
 	else
 	{
@@ -170,7 +170,7 @@ int WiFiEspClient::read()
 
 	if (connClose)
 	{
-		WiFiEspClass::_state[_sock] = NA_STATE;
+		WiFiEspClass::releaseSocket(_sock);
 		_sock = 255;
 	}
 
@@ -195,7 +195,7 @@ int WiFiEspClient::peek()
 
 	if (connClose)
 	{
-		WiFiEspClass::_state[_sock] = NA_STATE;
+		WiFiEspClass::releaseSocket(_sock);
 		_sock = 255;
 	}
 
@@ -220,7 +220,7 @@ void WiFiEspClient::stop()
 
 	EspDrv::stopClient(_sock);
 
-	WiFiEspClass::_state[_sock] = NA_STATE;
+	WiFiEspClass::releaseSocket(_sock);
 	_sock = 255;
 }
 
@@ -259,7 +259,7 @@ uint8_t WiFiEspClient::status()
 		return ESTABLISHED;
 	}
 
-	WiFiEspClass::_state[_sock] = NA_STATE;
+	WiFiEspClass::releaseSocket(_sock);
 	_sock = 255;
 
 	return CLOSED;
@@ -278,19 +278,6 @@ uint16_t WiFiEspClient::remotePort()
 ////////////////////////////////////////////////////////////////////////////////
 // Private Methods
 ////////////////////////////////////////////////////////////////////////////////
-
-uint8_t WiFiEspClient::getFirstSocket()
-{
-    for (uint8_t i = 0; i < MAX_SOCK_NUM; i++)
-	{
-      if (WiFiEspClass::_state[i] == NA_STATE)
-      {
-          return i;
-      }
-    }
-    return SOCK_NOT_AVAIL;
-}
-
 
 size_t WiFiEspClient::printFSH(const __FlashStringHelper *ifsh, bool appendCrLf)
 {

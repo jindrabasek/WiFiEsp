@@ -153,7 +153,6 @@ private:
 
   uint16_t charsToYield = EspDrv::yield_every_n_chars;
 
-  uint8_t getFirstSocket();
   int connect(const char* host, uint16_t port, uint8_t protMode);
   
   size_t printFSH(const __FlashStringHelper *ifsh, bool appendCrLf);
