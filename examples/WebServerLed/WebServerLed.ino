@@ -25,15 +25,20 @@ int ledStatus = LOW;
 
 WiFiEspServer server(80);
 
+#ifndef HAVE_HWSERIAL1
+SerialHolderT<SoftwareSerial> serial(&Serial1);
+#else
+SerialHolderT<HardwareSerial> serial(&Serial1);
+#endif
+
 // use a ring buffer to increase speed and reduce memory allocation
-RingBuffer buf(8);
+EspRingBuffer<8> buf;
 
 void setup()
 {
   pinMode(LED_BUILTIN, OUTPUT);	// initialize digital pin LED_BUILTIN as an output.
   Serial.begin(115200);   // initialize serial for debugging
-  Serial1.begin(9600);    // initialize serial for ESP module
-  WiFi.init(&Serial1);    // initialize ESP module
+  WiFi.init(&serial, 9600);
 
   // check for the presence of the shield
   if (WiFi.status() == WL_NO_SHIELD) {

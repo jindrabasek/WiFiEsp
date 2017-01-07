@@ -17,12 +17,17 @@ char ssid[] = "Twim";     // your network SSID (name)
 char pwd[] = "12345678";  // your network password
 char pwdErr[] = "xxxx";   // wrong password
 
+#ifndef HAVE_HWSERIAL1
+SerialHolderT<SoftwareSerial> serial(&Serial1);
+#else
+SerialHolderT<HardwareSerial> serial(&Serial1);
+#endif
+
 
 void setup()
 {
   Serial.begin(115200);
-  Serial1.begin(9600);
-  WiFi.init(&Serial1);
+  WiFi.init(&serial, 9600);
 }
 
 void loop()

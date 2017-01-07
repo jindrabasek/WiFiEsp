@@ -6,7 +6,7 @@
 
 #include "WiFiEsp.h"
 
-RingBuffer buf(5);
+EspRingBuffer<5> buf;
 
 
 void setup()

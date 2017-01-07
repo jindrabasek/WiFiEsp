@@ -24,14 +24,18 @@ char server[] = "arduino.cc";
 // Initialize the Ethernet client object
 WiFiEspClient client;
 
+#ifndef HAVE_HWSERIAL1
+SerialHolderT<SoftwareSerial> serial(&Serial1);
+#else
+SerialHolderT<HardwareSerial> serial(&Serial1);
+#endif
+
 void setup()
 {
   // initialize serial for debugging
   Serial.begin(115200);
-  // initialize serial for ESP module
-  Serial1.begin(9600);
   // initialize ESP module
-  WiFi.init(&Serial1);
+  WiFi.init(&serial, 9600);
 
   // check for the presence of the shield
   if (WiFi.status() == WL_NO_SHIELD) {
