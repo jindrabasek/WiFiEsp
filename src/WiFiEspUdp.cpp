@@ -73,7 +73,7 @@ void WiFiEspUDP::stop()
       
       // Stop the listener and return the socket to the pool
 	  EspDrv::stopClient(_sock);
-      WiFiEspClass::_state[_sock] = NA_STATE;
+	  WiFiEspClass::releaseSocket(_sock);
       WiFiEspClass::_server_port[_sock] = 0;
 
 	  _sock = NO_SOCKET_AVAIL;
@@ -85,12 +85,14 @@ int WiFiEspUDP::beginPacket(const char *host, uint16_t port)
 	  _sock = WiFiEspClass::getFreeSocket();
   if (_sock != NO_SOCKET_AVAIL)
   {
+      WiFiEspClass::allocateSocket(_sock);
 	  //EspDrv::startClient(host, port, _sock, UDP_MODE);
 	  _remotePort = port;
 	  strcpy(_remoteHost, host);
-	  WiFiEspClass::allocateSocket(_sock);
 	  return 1;
   }
+
+  LOGERROR(F("No socket available"));
   return 0;
 }
 
@@ -169,7 +171,6 @@ void WiFiEspUDP::flush()
 	while (count-- > 0) {
 	    read();
     }
-    EspDrv::flushReceiveBuffer();
 }
 
 

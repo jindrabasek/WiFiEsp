@@ -704,7 +704,7 @@ uint16_t EspDrv::availData(uint8_t connId, uint16_t * _remotePort, uint8_t * _re
 			return _bufPos;
 	}
 
-    if (readUntil(2000, "+IPD,", false))
+    if (readUntil(3000, "+IPD,", false))
     {
         // format is : +IPD,<id>,<len>:<data>
         // format is : +IPD,<ID>,<len>[,<remote IP>,<remote port>]:<data>
@@ -1043,10 +1043,10 @@ bool EspDrv::sendDataUdp(uint8_t sock, const char* host, uint16_t port, const ui
 	//LOGDEBUG1(F("> sendDataUdp:"), cmdBuf);
 	(*espSerial)->println(cmdBuf);
 
-	int idx = readUntil(2000, (char *)">", false);
+	int idx = readUntil(4000, (char *)">", false);
 	if(idx!=NUMESPTAGS)
 	{
-		LOGERROR(F("Data packet send error (1)"));
+		LOGERROR(F("Data UDP packet send error (1)"));
 		return false;
 	}
 
@@ -1055,7 +1055,7 @@ bool EspDrv::sendDataUdp(uint8_t sock, const char* host, uint16_t port, const ui
 	idx = readUntil(3000);
 	if(idx!=TAG_SENDOK)
 	{
-		LOGERROR(F("Data packet send error (2)"));
+		LOGERROR(F("Data UDP packet send error (2)"));
 		return false;
 	}
 
