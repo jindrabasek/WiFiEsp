@@ -19,18 +19,18 @@ along with The Arduino WiFiEsp library.  If not, see
 #ifndef WiFiEspServer_h
 #define WiFiEspServer_h
 
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <Server.h>
-
-#include "WiFiEsp.h"
-#include "WiFiEspClient.h"
+#include <WifiEspTimeouts.h>
+#include <WiFiEspClient.h>
 
 class WiFiEspServer : public Server
 {
 
 public:
-	WiFiEspServer(uint16_t port);
-	virtual ~WiFiEspServer();
-
+	WiFiEspServer(uint16_t port, WifiEspTimeouts* timeouts = NULL);
 
 	/*
 	* Gets a client that is connected to the server and has data available for reading.
@@ -55,6 +55,7 @@ public:
 private:
 	uint16_t _port;
     uint8_t _sock;
+    WifiEspTimeouts* timeouts;
 	bool _started = false;
 
 };

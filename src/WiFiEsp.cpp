@@ -60,7 +60,7 @@ char* WiFiEspClass::firmwareVersion()
 int WiFiEspClass::begin(const char* ssid, const char *passphrase)
 {
     espMode = 1;
-	if (EspDrv::wifiConnect(ssid, passphrase))
+	if (EspDrv::wifiConnect(ssid, passphrase, wifiConnectionTimeout))
 		return WL_CONNECTED;
 
 	return WL_CONNECT_FAILED;

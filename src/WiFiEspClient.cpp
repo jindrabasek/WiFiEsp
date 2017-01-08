@@ -16,25 +16,32 @@ along with The Arduino WiFiEsp library.  If not, see
 <http://www.gnu.org/licenses/>.
 --------------------------------------------------------------------*/
 
-#include <inttypes.h>
+#include <avr/pgmspace.h>
+#include <Arduino.h>
+#include <HardwareSerial.h>
+#include <IPAddress.h>
+#include <Print.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <string.h>
+#include <utility/debug.h>
+#include <utility/EspDrv.h>
+#include <WifiEspTimeouts.h>
+#include <WiFiEsp.h>
+#include <WiFiEspClient.h>
+#include <WString.h>
 
-#include "WiFiEsp.h"
-#include "WiFiEspClient.h"
-#include "WiFiEspServer.h"
 
-#include "utility/EspDrv.h"
-#include "utility/debug.h"
-
-
-WiFiEspClient::WiFiEspClient() : _sock(255), _remotePort(0)
+WiFiEspClient::WiFiEspClient(WifiEspTimeouts* timeouts) : _sock(255), _remotePort(0), timeouts(timeouts)
 {
 }
 
-WiFiEspClient::WiFiEspClient(uint8_t sock) : _sock(sock), _remotePort(0)
+WiFiEspClient::WiFiEspClient(uint8_t sock, WifiEspTimeouts* timeouts) : _sock(sock), _remotePort(0), timeouts(timeouts)
 {
 }
 
-WiFiEspClient::WiFiEspClient(uint8_t sock, uint16_t _remotePort, uint8_t * _remoteIp) : _sock(sock), _remotePort(_remotePort)
+WiFiEspClient::WiFiEspClient(uint8_t sock, uint16_t _remotePort, uint8_t * _remoteIp, WifiEspTimeouts* timeouts) : _sock(sock), _remotePort(_remotePort), timeouts(timeouts)
 {
     memcpy(this->_remoteIp, _remoteIp, WL_IPV4_LENGTH*sizeof(uint8_t));
 }
@@ -96,7 +103,14 @@ int WiFiEspClient::connect(const char* host, uint16_t port, uint8_t protMode)
 
     if (_sock != NO_SOCKET_AVAIL)
     {
-    	if (!EspDrv::startClient(host, port, _sock, protMode))
+        bool result;
+        if (timeouts != NULL) {
+            result = EspDrv::startClient(host, port, _sock, protMode, timeouts->getConnectionTimeout());
+        } else {
+            result = EspDrv::startClient(host, port, _sock, protMode);
+        }
+
+    	if (!result)
 			return 0;
 
     	WiFiEspClass::allocateSocket(_sock);
@@ -126,9 +140,17 @@ size_t WiFiEspClient::write(const uint8_t *buf, size_t size)
 
 	bool r;
 	if (sendexBufferPosition < 0) {
-	    r = EspDrv::sendData(_sock, buf, size);
+	    if (timeouts != NULL) {
+	        r = EspDrv::sendData(_sock, buf, size, timeouts->getConnectionTimeoutTcp());
+        } else {
+            r = EspDrv::sendData(_sock, buf, size);
+        }
 	} else {
-	    r = EspDrv::sendDataEx(_sock, buf, size, sendexBufferPosition, &charsToYield);
+	    if (timeouts != NULL) {
+	        r = EspDrv::sendDataEx(_sock, buf, size, sendexBufferPosition, &charsToYield, timeouts->getConnectionTimeoutTcp());
+        } else {
+            r = EspDrv::sendDataEx(_sock, buf, size, sendexBufferPosition, &charsToYield);
+        }
 	}
 
 	if (!r)
@@ -149,7 +171,13 @@ int WiFiEspClient::available()
 {
 	if (_sock != 255)
 	{
-		int bytes = EspDrv::availData(_sock, &_remotePort, _remoteIp);
+	    int bytes;
+	    if (timeouts != NULL) {
+            bytes = EspDrv::availData(_sock, &_remotePort, _remoteIp, timeouts->getReadTimeout());
+        } else {
+            bytes = EspDrv::availData(_sock, &_remotePort, _remoteIp);
+        }
+
 		if (bytes>0)
 		{
 			return bytes;
@@ -249,7 +277,7 @@ uint8_t WiFiEspClient::status()
 		return CLOSED;
 	}
 
-	if (EspDrv::availData(_sock, &_remotePort, _remoteIp))
+	if (EspDrv::availData(_sock, &_remotePort, _remoteIp, 50))
 	{
 		return ESTABLISHED;
 	}
@@ -258,6 +286,8 @@ uint8_t WiFiEspClient::status()
 	{
 		return ESTABLISHED;
 	}
+
+	LOGINFO1(F("Socket closed"), _sock);
 
 	WiFiEspClass::releaseSocket(_sock);
 	_sock = 255;
@@ -291,9 +321,17 @@ size_t WiFiEspClient::printFSH(const __FlashStringHelper *ifsh, bool appendCrLf)
 
     bool r;
     if (sendexBufferPosition < 0) {
-        r = EspDrv::sendData(_sock, ifsh, size, appendCrLf);
+        if (timeouts != NULL) {
+            r = EspDrv::sendData(_sock, ifsh, size, appendCrLf, timeouts->getConnectionTimeoutTcp());
+        } else {
+            r = EspDrv::sendData(_sock, ifsh, size, appendCrLf);
+        }
     } else {
-        r = EspDrv::sendDataEx(_sock, ifsh, size, sendexBufferPosition, &charsToYield, appendCrLf);
+        if (timeouts != NULL) {
+            r = EspDrv::sendDataEx(_sock, ifsh, size, sendexBufferPosition, &charsToYield, appendCrLf, timeouts->getConnectionTimeoutTcp());
+        } else {
+            r = EspDrv::sendDataEx(_sock, ifsh, size, sendexBufferPosition, &charsToYield, appendCrLf);
+        }
     }
 
 	if (!r)

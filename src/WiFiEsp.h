@@ -233,6 +233,10 @@ public:
 	*/
 	bool ping(const char *host);
 
+    void setWifiConnectionTimeout(uint16_t wifiConnectionTimeout =
+            EspDrv::DEFAULT_WIFI_CONNECTION_TIMEOUT) {
+        this->wifiConnectionTimeout = wifiConnectionTimeout;
+    }
 
 	friend class WiFiEspClient;
 	friend class WiFiEspServer;
@@ -244,6 +248,8 @@ private:
 	static void releaseSocket(uint8_t sock);
 
 	static uint8_t espMode;
+
+	uint16_t wifiConnectionTimeout = EspDrv::DEFAULT_WIFI_CONNECTION_TIMEOUT;
 };
 
 extern WiFiEspClass WiFi;

@@ -38,13 +38,14 @@ along with The Arduino WiFiEsp library.  If not, see
 #define _ESPLOGLEVEL_ 2
 #endif
 
-#define LOGERROR(x)    if(_ESPLOGLEVEL_>0) { Serial.print(F("[WiFiEsp] ")); Serial.println(x); }
-#define LOGERROR1(x,y) if(_ESPLOGLEVEL_>0) { Serial.print(F("[WiFiEsp] ")); Serial.print(x); Serial.print(' '); Serial.println(y); }
-#define LOGWARN(x)     if(_ESPLOGLEVEL_>1) { Serial.print(F("[WiFiEsp] ")); Serial.println(x); }
-#define LOGWARN0(x)    if(_ESPLOGLEVEL_>1) { Serial.print(x); }
-#define LOGWARN1(x,y)  if(_ESPLOGLEVEL_>1) { Serial.print(F("[WiFiEsp] ")); Serial.print(x); Serial.print(' '); Serial.println(y); }
-#define LOGINFO(x)     if(_ESPLOGLEVEL_>2) { Serial.print(F("[WiFiEsp] ")); Serial.println(x); }
-#define LOGINFO1(x,y)  if(_ESPLOGLEVEL_>2) { Serial.print(F("[WiFiEsp] ")); Serial.print(x); Serial.print(' '); Serial.println(y); }
+#define LOGERROR(x)      if(_ESPLOGLEVEL_>0) { Serial.print(F("[WiFiEsp] ")); Serial.println(x); }
+#define LOGERROR1(x,y)   if(_ESPLOGLEVEL_>0) { Serial.print(F("[WiFiEsp] ")); Serial.print(x); Serial.print(' '); Serial.println(y); }
+#define LOGERROR2(x,y,z) if(_ESPLOGLEVEL_>0) { Serial.print(F("[WiFiEsp] ")); Serial.print(x); Serial.print(' '); Serial.print(y); Serial.print(' '); Serial.println(z); }
+#define LOGWARN(x)       if(_ESPLOGLEVEL_>1) { Serial.print(F("[WiFiEsp] ")); Serial.println(x); }
+#define LOGWARN0(x)      if(_ESPLOGLEVEL_>1) { Serial.print(x); }
+#define LOGWARN1(x,y)    if(_ESPLOGLEVEL_>1) { Serial.print(F("[WiFiEsp] ")); Serial.print(x); Serial.print(' '); Serial.println(y); }
+#define LOGINFO(x)       if(_ESPLOGLEVEL_>2) { Serial.print(F("[WiFiEsp] ")); Serial.println(x); }
+#define LOGINFO1(x,y)    if(_ESPLOGLEVEL_>2) { Serial.print(F("[WiFiEsp] ")); Serial.print(x); Serial.print(' '); Serial.println(y); }
 
 #define LOGDEBUG(x)      if(_ESPLOGLEVEL_>3) { Serial.println(x); }
 #define LOGDEBUG0(x)     if(_ESPLOGLEVEL_>3) { Serial.print(x); }

@@ -19,8 +19,12 @@ along with The Arduino WiFiEsp library.  If not, see
 #ifndef WiFiEspUdp_h
 #define WiFiEspUdp_h
 
+#include <IPAddress.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <utility/EspDrv.h>
 #include <Udp.h>
-#include "utility/EspDrv.h"
+#include <WifiEspTimeouts.h>
 
 #define UDP_TX_PACKET_MAX_SIZE 24
 
@@ -32,6 +36,8 @@ along with The Arduino WiFiEsp library.  If not, see
 
 class WiFiEspUDP : public UDP {
 private:
+  WifiEspTimeouts* timeouts;
+
   uint8_t _sock;  // socket ID for Wiz5100
   uint16_t _port = 0; // local port to listen on
   
@@ -44,7 +50,7 @@ private:
   
 
 public:
-  WiFiEspUDP();  // Constructor
+  WiFiEspUDP(WifiEspTimeouts* timeouts = NULL);  // Constructor
 
   virtual uint8_t begin(uint16_t);	// initialize, start listening on specified port. Returns 1 if successful, 0 if there are no sockets available to use
   virtual void stop();  // Finish with the UDP socket

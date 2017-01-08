@@ -124,6 +124,12 @@ public:
 	static const unsigned long DEFAULT_ORIGINAL_BAUD_RATE = 115200;
 	static const int SENDEX_BUFFER_LENGTH = 2048;
 
+	static const uint16_t DEFAULT_WIFI_CONNECTION_TIMEOUT = 30000;
+	static const uint16_t DEFAULT_CONNECTION_TIMEOUT = 5000;
+	static const uint16_t DEFAULT_TCP_CONNECTION_TIMEOUT = 2000;
+	static const uint16_t DEFAULT_UDP_CONNECTION_TIMEOUT = 2000;
+	static const uint16_t DEFAULT_READ_TIMEOUT = 3000;
+
     static void wifiDriverInit(SerialHolder *espSerial, unsigned long baudRate,
                                int8_t chpdPin = -1, int8_t resetPin = -1,
                                unsigned long originalBaudRate = DEFAULT_ORIGINAL_BAUD_RATE);
@@ -134,7 +140,7 @@ public:
      * param ssid: Pointer to the SSID string.
      * param passphrase: Passphrase. Valid characters in a passphrase must be between ASCII 32-126 (decimal).
      */
-    static bool wifiConnect(const char* ssid, const char *passphrase);
+    static bool wifiConnect(const char* ssid, const char *passphrase, uint16_t wifiConnectionTimeout = DEFAULT_WIFI_CONNECTION_TIMEOUT);
 
 
     /*
@@ -251,21 +257,21 @@ public:
 
 
     static bool startServer(uint16_t port, uint8_t sock);
-    static bool startClient(const char* host, uint16_t port, uint8_t sock, uint8_t protMode);
+    static bool startClient(const char* host, uint16_t port, uint8_t sock, uint8_t protMode, uint16_t connectionTimeout = DEFAULT_CONNECTION_TIMEOUT);
     static void stopClient(uint8_t sock);
     static uint8_t getServerState(uint8_t sock);
     static uint8_t getClientState(uint8_t sock);
     static bool getData(uint8_t connId, uint8_t *data, bool peek, bool* connClose);
     static int getDataBuf(uint8_t connId, uint8_t *buf, uint16_t bufSize);
-    static bool sendData(uint8_t sock, const uint8_t *data, uint16_t len);
-    static bool sendData(uint8_t sock, const __FlashStringHelper *data, uint16_t len, bool appendCrLf=false);
-    static bool sendDataEx(uint8_t sock, const uint8_t *data, uint16_t len, int & sendexBufferPosition, uint16_t* charsToYield);
-    static bool sendDataEx(uint8_t sock, const __FlashStringHelper *data, uint16_t len, int & sendexBufferPosition, uint16_t* charsToYield, bool appendCrLf=false);
-    static bool beginPacket(uint8_t sock);
+    static bool sendData(uint8_t sock, const uint8_t *data, uint16_t len, uint16_t connectionTimeoutTcp = DEFAULT_TCP_CONNECTION_TIMEOUT);
+    static bool sendData(uint8_t sock, const __FlashStringHelper *data, uint16_t len, bool appendCrLf=false, uint16_t connectionTimeoutTcp = DEFAULT_TCP_CONNECTION_TIMEOUT);
+    static bool sendDataEx(uint8_t sock, const uint8_t *data, uint16_t len, int & sendexBufferPosition, uint16_t* charsToYield, uint16_t connectionTimeoutTcp = DEFAULT_TCP_CONNECTION_TIMEOUT);
+    static bool sendDataEx(uint8_t sock, const __FlashStringHelper *data, uint16_t len, int & sendexBufferPosition, uint16_t* charsToYield, bool appendCrLf=false, uint16_t connectionTimeoutTcp = DEFAULT_TCP_CONNECTION_TIMEOUT);
+    static bool beginPacket(uint8_t sock, uint16_t connectionTimeoutTcp);
     static bool endPacket(int & sendexBufferPosition);
 
-	static bool sendDataUdp(uint8_t sock, const char* host, uint16_t port, const uint8_t *data, uint16_t len);
-    static uint16_t availData(uint8_t connId, uint16_t * _remotePort, uint8_t * _remoteIp);
+	static bool sendDataUdp(uint8_t sock, const char* host, uint16_t port, const uint8_t *data, uint16_t len, uint16_t connectionTimeoutUdp = DEFAULT_UDP_CONNECTION_TIMEOUT);
+    static uint16_t availData(uint8_t connId, uint16_t * _remotePort, uint8_t * _remoteIp, uint16_t readTimeout = DEFAULT_READ_TIMEOUT);
 
 
 	static bool ping(const char *host);
@@ -305,7 +311,7 @@ private:
 	static bool sendCmdGet(const __FlashStringHelper* cmd, const char* startTag, const char* endTag, char* outStr, int outStrLen);
 	static bool sendCmdGet(const __FlashStringHelper* cmd, const __FlashStringHelper* startTag, const __FlashStringHelper* endTag, char* outStr, int outStrLen);
 
-	static int readUntil(unsigned int timeout, const char* tag=NULL, bool findTags=true);
+	static int readUntil(unsigned int timeout, const char* tag=NULL, bool findTags=true, bool showWarn = true);
 
 	static void espEmptyBuf(bool warn=true);
 

@@ -20,19 +20,22 @@ along with The Arduino WiFiEsp library.  If not, see
 #define WiFiEspClient_h
 
 
-#include "Arduino.h"
-#include "Print.h"
-#include "Client.h"
-#include "IPAddress.h"
-#include "utility/EspDrv.h"
+#include <Client.h>
+#include <IPAddress.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <utility/EspDrv.h>
+#include <WifiEspTimeouts.h>
+#include <WString.h>
 
 
 class WiFiEspClient : public Client
 {
 public:
-  WiFiEspClient();
-  WiFiEspClient(uint8_t sock);
-  WiFiEspClient(uint8_t sock, uint16_t _remotePort, uint8_t * _remoteIp);
+  WiFiEspClient(WifiEspTimeouts* timeouts = NULL);
+  WiFiEspClient(uint8_t sock, WifiEspTimeouts* timeouts = NULL);
+  WiFiEspClient(uint8_t sock, uint16_t _remotePort, uint8_t * _remoteIp, WifiEspTimeouts* timeouts = NULL);
   virtual ~WiFiEspClient();
   
   
@@ -152,6 +155,8 @@ private:
   uint8_t  _remoteIp[WL_IPV4_LENGTH] = {0};
 
   uint16_t charsToYield = EspDrv::yield_every_n_chars;
+
+  WifiEspTimeouts* timeouts;
 
   int connect(const char* host, uint16_t port, uint8_t protMode);
   

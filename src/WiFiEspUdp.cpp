@@ -23,7 +23,8 @@ along with The Arduino WiFiEsp library.  If not, see
 #include "utility/debug.h"
 
 /* Constructor */
-WiFiEspUDP::WiFiEspUDP() : _sock(NO_SOCKET_AVAIL) {}
+WiFiEspUDP::WiFiEspUDP(WifiEspTimeouts* timeouts)
+    : timeouts(timeouts), _sock(NO_SOCKET_AVAIL) {}
 
 
 /* Start WiFiUDP socket, listening at local port PORT */
@@ -33,7 +34,11 @@ uint8_t WiFiEspUDP::begin(uint16_t port)
     uint8_t sock = WiFiEspClass::getFreeSocket();
     if (sock != NO_SOCKET_AVAIL)
     {
-        EspDrv::startClient("0", port, sock, UDP_MODE);
+        if (timeouts != NULL) {
+            EspDrv::startClient("0", port, sock, UDP_MODE, timeouts->getConnectionTimeout());
+        } else {
+            EspDrv::startClient("0", port, sock, UDP_MODE);
+        }
 		
         WiFiEspClass::allocateSocket(sock);  // allocating the socket for the listener
         WiFiEspClass::_server_port[sock] = port;
@@ -52,7 +57,13 @@ int WiFiEspUDP::available()
 {
 	 if (_sock != NO_SOCKET_AVAIL)
 	 {
-		int bytes = EspDrv::availData(_sock, &_remoteSendingPort, _remoteIp);
+		int bytes;
+		if (timeouts != NULL) {
+		    bytes = EspDrv::availData(_sock, &_remoteSendingPort, _remoteIp, timeouts->getReadTimeout());
+		} else {
+		    bytes = EspDrv::availData(_sock, &_remoteSendingPort, _remoteIp);
+		}
+
 		if (bytes>0)
 		{
 			return bytes;
@@ -118,7 +129,13 @@ size_t WiFiEspUDP::write(uint8_t byte)
 
 size_t WiFiEspUDP::write(const uint8_t *buffer, size_t size)
 {
-	bool r = EspDrv::sendDataUdp(_sock, _remoteHost, _remotePort, buffer, size);
+    bool r;
+    if (timeouts != NULL) {
+        r = EspDrv::sendDataUdp(_sock, _remoteHost, _remotePort, buffer, size, timeouts->getConnectionTimeoutUdp());
+    } else {
+        r = EspDrv::sendDataUdp(_sock, _remoteHost, _remotePort, buffer, size);
+    }
+
 	if (!r)
 	{
 		return 0;

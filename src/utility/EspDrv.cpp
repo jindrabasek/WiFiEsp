@@ -200,7 +200,7 @@ void EspDrv::reset()
 	_connId = 0;
 }
 
-bool EspDrv::wifiConnect(const char* ssid, const char *passphrase)
+bool EspDrv::wifiConnect(const char* ssid, const char *passphrase, uint16_t wifiConnectionTimeout)
 {
 	LOGDEBUG(F("> wifiConnect"));
 
@@ -209,7 +209,7 @@ bool EspDrv::wifiConnect(const char* ssid, const char *passphrase)
 	// any special characters (',', '"' and '/')
 
     // connect to access point, use CUR mode to avoid connection at boot
-	int ret = sendCmd(F("AT+CWJAP_CUR=\"%s\",\"%s\""), 30000, ssid, passphrase);
+	int ret = sendCmd(F("AT+CWJAP_CUR=\"%s\",\"%s\""), wifiConnectionTimeout, ssid, passphrase);
 
     if (ret==TAG_OK)
     {
@@ -375,7 +375,7 @@ uint8_t EspDrv::getClientState(uint8_t sock)
 	char buf[10];
 	if (sendCmdGet(F("AT+CIPSTATUS"), findBuf, ",", buf, sizeof(buf)))
 	{
-		LOGDEBUG(F("Connected"));
+	    LOGDEBUG1(F("Connected"), buf);
 		return true;
 	}
 
@@ -634,7 +634,7 @@ bool EspDrv::startServer(uint16_t port, uint8_t sock)
 }
 
 
-bool EspDrv::startClient(const char* host, uint16_t port, uint8_t sock, uint8_t protMode)
+bool EspDrv::startClient(const char* host, uint16_t port, uint8_t sock, uint8_t protMode, uint16_t connectionTimeout)
 {
 	LOGDEBUG2(F("> startClient"), host, port);
 	
@@ -649,15 +649,19 @@ bool EspDrv::startClient(const char* host, uint16_t port, uint8_t sock, uint8_t 
 
 	int ret = TAG_ERROR;
 	if (protMode==TCP_MODE)
-		ret = sendCmd(F("AT+CIPSTART=%d,\"TCP\",\"%s\",%u"), 5000, sock, host, port);
+		ret = sendCmd(F("AT+CIPSTART=%d,\"TCP\",\"%s\",%u"), connectionTimeout, sock, host, port);
 	else if (protMode==SSL_MODE)
 	{
 		// better to put the CIPSSLSIZE here because it is not supported before firmware 1.4
 		sendCmd(F("AT+CIPSSLSIZE=4096"));
-		ret = sendCmd(F("AT+CIPSTART=%d,\"SSL\",\"%s\",%u"), 5000, sock, host, port);
+		ret = sendCmd(F("AT+CIPSTART=%d,\"SSL\",\"%s\",%u"), connectionTimeout, sock, host, port);
 	}
 	else if (protMode==UDP_MODE)
-		ret = sendCmd(F("AT+CIPSTART=%d,\"UDP\",\"%s\",0,%u,2"), 5000, sock, host, port);
+		ret = sendCmd(F("AT+CIPSTART=%d,\"UDP\",\"%s\",0,%u,2"), connectionTimeout, sock, host, port);
+
+	if (ret < 0) {
+	    LOGERROR2(F("Connection timeout"), host, port);
+	}
 
 	return ret==TAG_OK;
 }
@@ -691,7 +695,7 @@ uint8_t EspDrv::getServerState(uint8_t sock)
 
 
 
-uint16_t EspDrv::availData(uint8_t connId, uint16_t * _remotePort, uint8_t * _remoteIp)
+uint16_t EspDrv::availData(uint8_t connId, uint16_t * _remotePort, uint8_t * _remoteIp, uint16_t readTimeout)
 {
     //LOGDEBUG1(F("Buffer poss availData"), _bufPos);
 
@@ -704,7 +708,7 @@ uint16_t EspDrv::availData(uint8_t connId, uint16_t * _remotePort, uint8_t * _re
 			return _bufPos;
 	}
 
-    if (readUntil(3000, "+IPD,", false))
+    if (readUntil(readTimeout, "+IPD,", false, false))
     {
         // format is : +IPD,<id>,<len>:<data>
         // format is : +IPD,<ID>,<len>[,<remote IP>,<remote port>]:<data>
@@ -836,7 +840,7 @@ int EspDrv::getDataBuf(uint8_t connId, uint8_t *buf, uint16_t bufSize)
 }
 
 
-bool EspDrv::sendData(uint8_t sock, const uint8_t *data, uint16_t len)
+bool EspDrv::sendData(uint8_t sock, const uint8_t *data, uint16_t len, uint16_t connectionTimeoutTcp)
 {
 	LOGDEBUG2(F("> sendData:"), sock, len);
 
@@ -844,7 +848,7 @@ bool EspDrv::sendData(uint8_t sock, const uint8_t *data, uint16_t len)
 	sprintf_P(cmdBuf, PSTR("AT+CIPSEND=%d,%u"), sock, len);
 	(*espSerial)->println(cmdBuf);
 
-	int idx = readUntil(2000, (char *)">", false);
+	int idx = readUntil(connectionTimeoutTcp, (char *)">", false);
 	if(idx!=NUMESPTAGS)
 	{
 		LOGERROR(F("Data packet send error (1)"));
@@ -853,7 +857,7 @@ bool EspDrv::sendData(uint8_t sock, const uint8_t *data, uint16_t len)
 
 	(*espSerial)->write(data, len);
 
-	idx = readUntil(3000);
+	idx = readUntil(connectionTimeoutTcp + 1000);
 	if(idx!=TAG_SENDOK)
 	{
 		LOGERROR(F("Data packet send error (2)"));
@@ -863,7 +867,7 @@ bool EspDrv::sendData(uint8_t sock, const uint8_t *data, uint16_t len)
     return true;
 }
 
-bool EspDrv::sendDataEx(uint8_t sock, const uint8_t *data, uint16_t len, int & sendexBufferPosition, uint16_t* charsToYield)
+bool EspDrv::sendDataEx(uint8_t sock, const uint8_t *data, uint16_t len, int & sendexBufferPosition, uint16_t* charsToYield, uint16_t connectionTimeoutTcp)
 {
     LOGDEBUG2(F("> sendDataEx:"), sock, len);
 
@@ -871,7 +875,7 @@ bool EspDrv::sendDataEx(uint8_t sock, const uint8_t *data, uint16_t len, int & s
 
     while (lenReamining > 0) {
         if (sendexBufferPosition == 0) {
-            if (!beginPacket(sock)){
+            if (!beginPacket(sock, connectionTimeoutTcp)){
                 return false;
             }
         }
@@ -907,7 +911,7 @@ bool EspDrv::sendDataEx(uint8_t sock, const uint8_t *data, uint16_t len, int & s
 }
 
 // Overridden sendData method for __FlashStringHelper strings
-bool EspDrv::sendDataEx(uint8_t sock, const __FlashStringHelper *data, uint16_t len, int & sendexBufferPosition, uint16_t* charsToYield, bool appendCrLf)
+bool EspDrv::sendDataEx(uint8_t sock, const __FlashStringHelper *data, uint16_t len, int & sendexBufferPosition, uint16_t* charsToYield, bool appendCrLf, uint16_t connectionTimeoutTcp)
 {
     LOGDEBUG2(F("> sendDataEx:"), sock, len);
 
@@ -916,7 +920,7 @@ bool EspDrv::sendDataEx(uint8_t sock, const __FlashStringHelper *data, uint16_t 
     PGM_P p = reinterpret_cast<PGM_P>(data);
     while (lenReamining > 0) {
         if (sendexBufferPosition == 0) {
-            if (!beginPacket(sock)){
+            if (!beginPacket(sock, connectionTimeoutTcp)){
                 return false;
             }
         }
@@ -955,7 +959,7 @@ bool EspDrv::sendDataEx(uint8_t sock, const __FlashStringHelper *data, uint16_t 
     return true;
 }
 
-bool EspDrv::beginPacket(uint8_t sock)
+bool EspDrv::beginPacket(uint8_t sock, uint16_t connectionTimeoutTcp)
 {
     LOGDEBUG1(F("> beginPacket:"), sock);
 
@@ -963,7 +967,7 @@ bool EspDrv::beginPacket(uint8_t sock)
     sprintf_P(cmdBuf, PSTR("AT+CIPSENDEX=%d,%u"), sock, SENDEX_BUFFER_LENGTH);
     (*espSerial)->println(cmdBuf);
 
-    int idx = readUntil(2000, (char *)">", false);
+    int idx = readUntil(connectionTimeoutTcp, (char *)">", false);
     if(idx!=NUMESPTAGS)
     {
         LOGERROR(F("Data packet begin error (1)"));
@@ -994,7 +998,7 @@ bool EspDrv::endPacket(int & sendexBufferPosition)
 }
 
 // Overridden sendData method for __FlashStringHelper strings
-bool EspDrv::sendData(uint8_t sock, const __FlashStringHelper *data, uint16_t len, bool appendCrLf)
+bool EspDrv::sendData(uint8_t sock, const __FlashStringHelper *data, uint16_t len, bool appendCrLf, uint16_t connectionTimeoutTcp)
 {
 	LOGDEBUG2(F("> sendData:"), sock, len);
 
@@ -1003,7 +1007,7 @@ bool EspDrv::sendData(uint8_t sock, const __FlashStringHelper *data, uint16_t le
 	sprintf_P(cmdBuf, PSTR("AT+CIPSEND=%d,%u"), sock, len2);
 	(*espSerial)->println(cmdBuf);
 
-	int idx = readUntil(2000, (char *)">", false);
+	int idx = readUntil(connectionTimeoutTcp, (char *)">", false);
 	if(idx!=NUMESPTAGS)
 	{
 		LOGERROR(F("Data packet send error (1)"));
@@ -1023,7 +1027,7 @@ bool EspDrv::sendData(uint8_t sock, const __FlashStringHelper *data, uint16_t le
 		(*espSerial)->write('\n');
 	}
 
-	idx = readUntil(3000);
+	idx = readUntil(connectionTimeoutTcp + 1000);
 	if(idx!=TAG_SENDOK)
 	{
 		LOGERROR(F("Data packet send error (2)"));
@@ -1033,7 +1037,7 @@ bool EspDrv::sendData(uint8_t sock, const __FlashStringHelper *data, uint16_t le
     return true;
 }
 
-bool EspDrv::sendDataUdp(uint8_t sock, const char* host, uint16_t port, const uint8_t *data, uint16_t len)
+bool EspDrv::sendDataUdp(uint8_t sock, const char* host, uint16_t port, const uint8_t *data, uint16_t len, uint16_t connectionTimeoutUdp)
 {
 	LOGDEBUG2(F("> sendDataUdp:"), sock, len);
 	LOGDEBUG2(F("> sendDataUdp:"), host, port);
@@ -1043,7 +1047,7 @@ bool EspDrv::sendDataUdp(uint8_t sock, const char* host, uint16_t port, const ui
 	//LOGDEBUG1(F("> sendDataUdp:"), cmdBuf);
 	(*espSerial)->println(cmdBuf);
 
-	int idx = readUntil(4000, (char *)">", false);
+	int idx = readUntil(connectionTimeoutUdp, (char *)">", false);
 	if(idx!=NUMESPTAGS)
 	{
 		LOGERROR(F("Data UDP packet send error (1)"));
@@ -1212,7 +1216,7 @@ int EspDrv::sendCmd(const __FlashStringHelper* cmd, int timeout, ...)
 // Returns:
 //   the index of the tag found in the ESPTAGS array
 //   -1 if no tag was found (timeout)
-int EspDrv::readUntil(unsigned int timeout, const char* tag, bool findTags)
+int EspDrv::readUntil(unsigned int timeout, const char* tag, bool findTags, bool showWarn)
 {
 	ringBuf.reset();
 
@@ -1294,9 +1298,11 @@ int EspDrv::readUntil(unsigned int timeout, const char* tag, bool findTags)
 		}
     }
 
-	if (millis() - start >= timeout)
+	if (showWarn && millis() - start >= timeout)
 	{
 		LOGWARN1(F(">>> TIMEOUT >>>"), tag);
+	} else if (millis() - start >= timeout) {
+	    LOGINFO1(F(">>> TIMEOUT INFO >>>"), tag);
 	}
 
     return ret;

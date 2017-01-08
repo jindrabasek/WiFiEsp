@@ -16,16 +16,19 @@ along with The Arduino WiFiEsp library.  If not, see
 <http://www.gnu.org/licenses/>.
 --------------------------------------------------------------------*/
 
-#include "WiFiEspServer.h"
+#include <Arduino.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <utility/debug.h>
+#include <utility/EspDrv.h>
+#include <WifiEspTimeouts.h>
+#include <WiFiEsp.h>
+#include <WiFiEspClient.h>
+#include <WiFiEspServer.h>
 
-#include "utility/EspDrv.h"
-#include "utility/debug.h"
 
-
-
-WiFiEspServer::WiFiEspServer(uint16_t port)
+WiFiEspServer::WiFiEspServer(uint16_t port, WifiEspTimeouts* timeouts) : _port(port), _sock(NO_SOCKET_AVAIL), timeouts(timeouts)
 {
-	_port = port;
 }
 
 void WiFiEspServer::begin()
@@ -33,16 +36,13 @@ void WiFiEspServer::begin()
 	LOGDEBUG(F("Starting server"));
 
 	/* The ESP Module only allows socket 1 to be used for the server */
-#if 0
 	_sock = WiFiEspClass::getFreeSocket();
-	if (_sock == SOCK_NOT_AVAIL)
-	  {
-	    LOGERROR(F("No socket available for server"));
-	    return;
-	  }
-#else
-	_sock = 1; // If this is already in use, the startServer attempt will fail
-#endif
+	if (_sock == SOCK_NOT_AVAIL || _sock != 1)
+    {
+        LOGERROR(F("No socket available for server"));
+        return;
+    }
+
 	WiFiEspClass::allocateSocket(_sock);
 
 	_started = EspDrv::startServer(_port, _sock);
@@ -63,7 +63,13 @@ WiFiEspClient WiFiEspServer::available(byte* status)
 
     uint16_t _remotePort = 0;
     uint8_t  _remoteIp[WL_IPV4_LENGTH] = {0};
-	int bytes = EspDrv::availData(0, &_remotePort, _remoteIp);
+    int bytes;
+    if (timeouts != NULL) {
+        bytes = EspDrv::availData(0, &_remotePort, _remoteIp, timeouts->getReadTimeout());
+    } else {
+        bytes = EspDrv::availData(0, &_remotePort, _remoteIp);
+    }
+
 	if (bytes>0)
 	{
 		LOGINFO1(F("New client"), EspDrv::_connId);
@@ -97,8 +103,4 @@ size_t WiFiEspServer::write(const uint8_t *buffer, size_t size)
         }
     }
     return n;
-}
-
-WiFiEspServer::~WiFiEspServer() {
-	Serial.println(F("!!!!!! Server deleted! Do not do that! It is stopped only after ESP restart."));
 }
